@@ -1,0 +1,6 @@
+[submodule "hindsight-experience-replay"]
+	path = hindsight-experience-replay
+	url = https://github.com/AlexHermansson/hindsight-experience-replay.git
+[submodule "babyai"]
+	path = babyai
+	url = https://github.com/mila-iqia/babyai
