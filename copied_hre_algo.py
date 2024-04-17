@@ -120,7 +120,7 @@ class DuelingMLP(nn.Module):
         self.model = nn.Sequential(
             nn.Linear(state_size, 64),  # Adjusted input size
             *[item for sublist in [[nn.ReLU(), nn.Linear(64, 64)] for _ in range(3)] for item in sublist],
-            nn.ReLU(),
+            
         )
         
         self.value_head = nn.Linear(64, 1)
@@ -184,7 +184,7 @@ class DQNAgent:
             
         self.update_target_network()
 
-        self.optimizer = optim.Adam(self.Q_network.parameters(), lr=0.001)
+        self.optimizer = optim.Adam(self.Q_network.parameters(), lr=0.01)
 
     def push_experience(self, state, action, reward, next_state, done):
         self.memory.push(Experience(state, action, reward, next_state, done))
@@ -194,13 +194,26 @@ class DQNAgent:
 
     def take_action(self, state, epsilon):
         if random.random() > epsilon:
-            return self.greedy_action(state)
+            action =  self.greedy_action(state)
         else:
-            return torch.randint(self.num_actions, size=())
+            action =  torch.randint(self.num_actions, size=())
+        
+        
+        return action
 
     def greedy_action(self, state):
-        with torch.no_grad():
-            return self.Q_network(state).argmax()
+        
+        if not FAKE_GREEDY:
+            with torch.no_grad():
+                return self.Q_network(state).argmax()
+        else:
+            with torch.no_grad():
+                q_values = self.Q_network(state)
+                action_probs = F.softmax(q_values, dim=-1)
+                action = torch.multinomial(action_probs, num_samples=1)
+                return torch.tensor(action).squeeze()
+
+
     
     def save_model(self, path="."):
         torch.save(self.target_network.state_dict(), os.join(path, datetime.now(), "/target"))
@@ -247,6 +260,8 @@ class DQNAgent:
 SOMETHING_IDK_WHAT = 200
 NUM_DIRECTIONS = 4
 EPISODES_PER_BATCH = 16
+CHANGE_REWARD = False
+FAKE_GREEDY = False
 
 def true_print(item):
     with open("true_output.txt", "a") as file:
@@ -323,12 +338,21 @@ def train(env, num_actions, state_size, num_epochs=10, hindsight_replay=True,
                     #     true_print("Truncated")
                     
                     reward = torch.tensor(reward)
+                    
+                    if CHANGE_REWARD:
+                        if reward <= 0:
+                            reward = torch.tensor(-1)
+                        else:
+                            reward = torch.tensor(1)
+                    
                     done = terminated or truncated
                     episode_trajectory.append(Experience(state, action, reward, next_state, done))
                     state = next_state
                     if terminated:
+                        #true_print(f"succeeded {reward}")
                         successes += 1
                     if truncated:
+                        #true_print(f"failed {reward}")
                         assert step == SOMETHING_IDK_WHAT - 1
                     if done:
                         break
