@@ -6,10 +6,15 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 
+import numpy as np
+
 import matplotlib.pyplot as plt
 import seaborn as sns; sns.set()
 
 import minigrid
+from minigrid.wrappers import ImgObsWrapper
+import gymnasium
+import typing
 
 
 Experience = namedtuple("Experience", field_names="state action reward next_state done")
@@ -124,11 +129,15 @@ class DQNAgent:
         self.optimizer.step()
 
 
-def train(env: g, num_bits=10, num_epochs=10, hindsight_replay=True,
+
+SOMETHING_IDK_WHAT = 5000
+NUM_DIRECTIONS = 4
+
+def train(env, num_actions, state_size, num_epochs=10, hindsight_replay=True,
           eps_max=0.2, eps_min=0.0, exploration_fraction=0.5):
 
     """
-    Training loop for the bit flip experiment introduced in https://arxiv.org/pdf/1707.01495.pdf using DQN or DQN with
+    Training loop using DQN or DQN with
     hindsight experience replay. Exploration is decayed linearly from eps_max to eps_min over a fraction of the total
     number of epochs according to the parameter exploration_fraction. Returns a list of the success rates over the
     epochs.
@@ -140,8 +149,6 @@ def train(env: g, num_bits=10, num_epochs=10, hindsight_replay=True,
     num_episodes = 16
     num_opt_steps = 40
 
-    num_actions = num_bits
-    state_size = 2 * num_bits
     agent = DQNAgent(state_size, num_actions)
 
     success_rate = 0.0
@@ -154,18 +161,20 @@ def train(env: g, num_bits=10, num_epochs=10, hindsight_replay=True,
 
         successes = 0
         for cycle in range(num_cycles):
-
             for episode in range(num_episodes):
 
                 # Run episode and cache trajectory
                 episode_trajectory = []
-                state, goal = env.reset()
+                
+                
+                state, info = env.reset()
+                goal = torch.tensor([-1.])
 
-                for step in range(num_bits):
-
+                for step in range(SOMETHING_IDK_WHAT):
                     state_ = torch.cat((state, goal))
                     action = agent.take_action(state_, eps)
-                    next_state, reward, done = env.step(action.item())
+                    next_state, reward, terminated, truncated, _ = env.step(action.item())
+                    done = terminated or truncated
                     episode_trajectory.append(Experience(state, action, reward, next_state, done))
                     state = next_state
                     if done:
@@ -201,26 +210,94 @@ def train(env: g, num_bits=10, num_epochs=10, hindsight_replay=True,
 
     return success_rates
 
+class ImageZerothIndexWrapper(gymnasium.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        image_space = self.env.observation_space['image']
+        image_shape = image_space.shape[:2]  # Get the height and width of the image
+        self.observation_space = gymnasium.spaces.Box(
+            low=0,
+            high=255,
+            shape=(image_shape[0] * image_shape[1] + NUM_DIRECTIONS,),
+            dtype=np.uint8)
+
+    def observation(self, observation):
+        full_obs = observation
+    
+        direction = full_obs['direction'].item()
+        image = full_obs['image']
+        
+        if not isinstance(direction, int):
+            print(direction)
+            print(type(image))
+            raise ValueError("direction is not int")
+        if not isinstance(image, np.ndarray):
+            print(image)
+            print(type(image))
+            raise ValueError("Image is not a numpy array")
+        
+        # Flatten the image and concatenate with direction one-hot encoding
+        ar = np.zeros(image.shape[0] * image.shape[1] + NUM_DIRECTIONS, dtype=np.uint8)
+        ar[:image.shape[0] * image.shape[1]] = image[:, :, 0].flatten()
+        ar[image.shape[0] * image.shape[1] + direction] = 1
+        
+        return torch.tensor(ar).to(torch.float32)
+    
+    
+class GoalAndState(gymnasium.ObservationWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        self.observation_space = gymnasium.spaces.Box(
+            low=0,
+            high=255,
+            shape=(2 + NUM_DIRECTIONS,),
+            dtype=np.uint8)
+
+    def observation(self, observation) -> tuple: 
+        full_obs = observation
+    
+        direction = full_obs['direction'].item()
+        image = full_obs['image']
+        
+        if not isinstance(direction, int):
+            print(direction)
+            print(type(image))
+            raise ValueError("direction is not int")
+        if not isinstance(image, np.ndarray):
+            print(image)
+            print(type(image))
+            raise ValueError("Image is not a numpy array")
+        
+        position = np.where(image[:, :, 0] == 10)
+
+        # Flatten the image and concatenate with direction one-hot encoding
+        
+        ar = np.zeros(2 + NUM_DIRECTIONS, dtype=np.uint8)
+        import ipdb; ipdb.set_trace()
+        ar[0] = position[0][0]
+        ar[1] = position[1][0]
+        ar[2 + direction] = 1
+        
+        return torch.tensor(ar), None
+    
 
 if __name__ == "__main__":
-    bits = 50  # more than 10^15 states
     epochs = 40
-    
-    
-    
-    
 
-    for her in [True, False]:
-        env = something
+    for her in [False]: # True
+        
+        env: gymnasium.Env = gymnasium.make("BabyAI-OneRoomS8-v0", render_mode="human")
+        env = ImageZerothIndexWrapper(env)
+        #env = GoalAndState(env)
+        obs, info = env.reset() # TODO: make an issue on this this is insane does nobody use this env
+        
+        #import ipdb; ipdb.set_trace()
+        success = train(env, env.action_space.n, env.observation_space.shape[0] + 1, epochs, her, eps_max=1)
         
         
-        
-        success = train(env, bits, epochs, her)
         plt.plot(success, label="HER-DQN" if her else "DQN")
 
     plt.legend()
     plt.xlabel("Epoch")
     plt.ylabel("Success rate")
-    plt.title("Number of bits: {}".format(bits))
-    plt.savefig("{}_bits.png".format(bits), dpi=1000)
     plt.show()
