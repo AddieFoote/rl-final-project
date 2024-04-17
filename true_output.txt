@@ -1,0 +1,2 @@
+Epoch: 1, exploration: 30%, success rate: 0.00
+Generated new env
