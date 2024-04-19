@@ -17,7 +17,7 @@ import gymnasium
 import typing
 import datetime
 import os
-
+from functools import partial
 import warnings
 warnings.filterwarnings('ignore', category=UserWarning, message='Intel MKL WARNING.*')
 
@@ -62,6 +62,49 @@ class ImageZerothIndexWrapper(gymnasium.ObservationWrapper):
         
         return torch.tensor(ar).to(torch.float32)
     
+
+
+NUM_STATE_CLASSES = 10
+class OneHotImageZerothIndexWrapper(gymnasium.ObservationWrapper):
+    """
+    literally the above class but the image is instead actually one-hot encoded
+    """
+    def __init__(self, env, num_cell_states = NUM_STATE_CLASSES):
+        super().__init__(env)
+        image_space = self.env.observation_space['image']
+        image_shape = image_space.shape[:2]  # Get the height and width of the image
+        self.num_cell_states = num_cell_states
+        self.observation_space = gymnasium.spaces.Box(
+            low=0, high=1, shape=(image_shape[0] * image_shape[1] * num_cell_states + NUM_DIRECTIONS,), dtype=np.float32)
+
+    def observation(self, observation):
+        full_obs = observation
+        direction = full_obs['direction'].item()
+        image = full_obs['image']
+
+        if not isinstance(direction, int):
+            print(direction)
+            print(type(image))
+            raise ValueError("direction is not int")
+        if not isinstance(image, np.ndarray):
+            print(image)
+            print(type(image))
+            raise ValueError("Image is not a numpy array")
+
+        # One-hot encode the image based on the number of possible cell states
+        image_tensor = torch.from_numpy(image[:, :, 0]).long()
+        one_hot_image = torch.nn.functional.one_hot(image_tensor, num_classes=self.num_cell_states).float()
+        one_hot_image = one_hot_image.permute(2, 0, 1).flatten() # put the class at the front and then flatten
+
+
+        # Flatten the one-hot encoded image and concatenate with direction one-hot encoding
+        ar = np.zeros(image.shape[0] * image.shape[1] * self.num_cell_states + NUM_DIRECTIONS, dtype=np.float32)
+        ar[:image.shape[0] * image.shape[1] * self.num_cell_states] = one_hot_image
+        ar[image.shape[0] * image.shape[1] * self.num_cell_states + direction] = 1
+
+        
+        return torch.tensor(ar)
+    
     
 class GoalAndState(gymnasium.ObservationWrapper):
     def __init__(self, env):
@@ -105,17 +148,38 @@ class GoalAndState(gymnasium.ObservationWrapper):
     
 
 class DuelingMLP(nn.Module):
-    def __init__(self, state_size, num_actions):
+    def __init__(self, state_size, num_actions, receiving_one_hot=False):
         super().__init__()
         self.linears = []
-        self.CNNs = nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
-            nn.ReLU(),
-            nn.Conv2d(32, 1, kernel_size=3, stride=1, padding=1),
-            nn.ReLU()
-        )
+        
+        self.one_hot = receiving_one_hot
+        
+        if self.one_hot:
+            self.CNNs = nn.Sequential(
+                nn.Conv2d(NUM_STATE_CLASSES, 10, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(10, 10, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(10, 10, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(10, 10, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(10, 10, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(10, 10, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(10, 1, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+            )
+        else:
+            self.CNNs = nn.Sequential(
+                nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
+                nn.ReLU(),
+                nn.Conv2d(32, 1, kernel_size=3, stride=1, padding=1),
+                nn.ReLU()
+            )
         
         self.model = nn.Sequential(
             nn.Linear(state_size, 64),  # Adjusted input size
@@ -129,10 +193,18 @@ class DuelingMLP(nn.Module):
     def forward(self, x):
         x = x.unsqueeze(0) if len(x.size()) == 1 else x
         
-        map_input = x[:, :49].reshape((-1, 7, 7))
-        map_output = self.CNNs(map_input.unsqueeze(1))
+        if self.one_hot:
+            # Started:
+            map_input = x[:, :7 * 7 * NUM_STATE_CLASSES].reshape(-1, 7, 7, NUM_STATE_CLASSES).permute(0, 3, 1, 2)
+            map_output = self.CNNs(map_input)
+            
+            
+        else:
+            map_input = x[:, :49].reshape((-1, 7, 7))
+            map_output = self.CNNs(map_input.unsqueeze(1))
+            
+            
         map_output = map_output.squeeze(1).reshape((-1, 7*7))
-        
         x = torch.cat((map_output, x[:, 49:]), dim=1)  # Concatenate map output with remaining features
         
         x = self.model(x)
@@ -165,7 +237,7 @@ class DQNAgent:
 
     """ Double-DQN with Dueling Architecture """
 
-    def __init__(self, state_size, num_actions, path=None):
+    def __init__(self, state_size, num_actions, path=None, receiving_one_hot = False):
 
         self.state_size = state_size
         self.num_actions = num_actions
@@ -176,9 +248,12 @@ class DQNAgent:
 
         self.memory = ReplayMemory(int(1e6))
         
+        if receiving_one_hot:
+            print("Agent working with one-hot")
+        
         if path==None:
-            self.Q_network = DuelingMLP(state_size, num_actions)
-            self.target_network = DuelingMLP(state_size, num_actions)
+            self.Q_network = DuelingMLP(state_size, num_actions, receiving_one_hot=receiving_one_hot)
+            self.target_network = DuelingMLP(state_size, num_actions, receiving_one_hot=receiving_one_hot)
         else:
             self.load_model(path, state_size, num_actions)
             
@@ -202,7 +277,6 @@ class DQNAgent:
         return action
 
     def greedy_action(self, state):
-        
         if not FAKE_GREEDY:
             with torch.no_grad():
                 return self.Q_network(state).argmax()
@@ -261,7 +335,9 @@ SOMETHING_IDK_WHAT = 200
 NUM_DIRECTIONS = 4
 EPISODES_PER_BATCH = 16
 CHANGE_REWARD = False
-FAKE_GREEDY = False
+FAKE_GREEDY = True
+ENV_WRAPPER = OneHotImageZerothIndexWrapper
+
 
 def true_print(item):
     with open("true_output.txt", "a") as file:
@@ -282,6 +358,9 @@ def generate_env(human = False, wrapper=ImageZerothIndexWrapper):
     
 
 
+
+
+
 def train(env, num_actions, state_size, num_epochs=10, hindsight_replay=True,
           eps_max=0.2, eps_min=0.0, exploration_fraction=0.5):
 
@@ -298,7 +377,10 @@ def train(env, num_actions, state_size, num_epochs=10, hindsight_replay=True,
     num_episodes = EPISODES_PER_BATCH
     num_opt_steps = 40
 
-    agent = DQNAgent(state_size, num_actions)
+    if isinstance(env, OneHotImageZerothIndexWrapper):
+        agent = DQNAgent(state_size, num_actions, receiving_one_hot=True)
+    else:
+        agent = DQNAgent(state_size, num_actions)
 
     success_rate = 0.0
     success_rates = []
@@ -315,9 +397,9 @@ def train(env, num_actions, state_size, num_epochs=10, hindsight_replay=True,
             for episode in range(num_episodes):
                 
                 if episode == 0 and cycle == 0:
-                    env = generate_env(human = True)
+                    env = generate_env(human = True, wrapper=ENV_WRAPPER)
                 elif episode == 1 and cycle == 0:
-                    env = generate_env(human = False)
+                    env = generate_env(human = False, wrapper=ENV_WRAPPER)
                     true_print("Generated new env")
 
                 # Run episode and cache trajectory
@@ -393,7 +475,9 @@ if __name__ == "__main__":
 
     for her in [False]: # True
         
-        env = generate_env(human = False)#), wrapper=GoalAndState)
+        env = generate_env(human = False, wrapper=ENV_WRAPPER)
+        
+        #), wrapper=GoalAndState)
         # env = GoalAndState(env)
         obs, info = env.reset() # TODO: make an issue on this this is insane does nobody use this env
         
