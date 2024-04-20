@@ -46,7 +46,7 @@ def write_args_to_file(args, file_path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Script description here")
-    parser.add_argument('--env', choices=['one-hot', 'img'], default='img', help="Environment type (normalized or one-hot)")
+    parser.add_argument('--env', choices=['one-hot', 'img', "fully-observable", "fully-observable-one-hot"], default='img', help="Environment type (normalized or one-hot)")
     parser.add_argument('--algorithm', choices=['PPO', 'A2C', 'DDPG', 'DQN', 'HER', 'SAC', 'TD3'], default='PPO')
     parser.add_argument('--policy', choices=['CnnPolicy', 'MlpPolicy'], default='CnnPolicy')
     parser.add_argument('--save-id', type=str, default=datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), help="save-id")
@@ -61,6 +61,12 @@ if __name__ == "__main__":
         env = minigrid.wrappers.ImgObsWrapper(env)
     elif args.env == 'img':
         env = minigrid.wrappers.ImgObsWrapper(env)
+    elif args.env == 'fully-observable':
+        env = minigrid.wrappers.FullyObsWrapper(env)
+        env = minigrid.wrappers.ImgObsWrapper(env)
+    elif args.env == "fully-observable-one-hot":
+        raise('Fully observable one-hot not implemented yet')
+        # TODO: Implement fully observable one-hot
     else:
         raise('Invalid env selected')
     
@@ -83,6 +89,7 @@ if __name__ == "__main__":
         model = stable_baselines3.DQN(policy_type, env, policy_kwargs=policy_kwargs, tensorboard_log=log_dir, verbose=1)
     elif args.algorithm == 'HER':
         raise('HER not implemented yet')
+        # TODO: Implement HER, use fully observable so we can use states as goals
         model = stable_baselines3.HER(policy_type, env, policy_kwargs=policy_kwargs, tensorboard_log=log_dir, verbose=1)
     elif args.algorithm == 'SAC':
         raise('SAC not applicable, expects continuous action space')

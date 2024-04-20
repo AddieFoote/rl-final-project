@@ -1,11 +1,12 @@
 #!/bin/bash
 
-algorithms=('PPO' 'A2C' 'DDPG' 'DQN' 'HER' 'SAC' 'TD3')
-envs=('one-hot' 'img')
+algorithms=('PPO' 'A2C' 'DQN')
+envs=('one-hot' 'img' 'fully-observable')
+# envs=('fully-observable')
 policies=('CnnPolicy' 'MlpPolicy')
 
 
-counter=0
+counter=100
 for algorithm in "${algorithms[@]}"; do
     for env in "${envs[@]}"; do
         for policy in "${policies[@]}"; do
