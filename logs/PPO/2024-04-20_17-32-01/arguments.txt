@@ -1,0 +1,4 @@
+env: one-hot
+algorithm: PPO
+policy: CnnPolicy
+save_id: 2024-04-20_17-32-01

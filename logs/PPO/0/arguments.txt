@@ -1,0 +1,4 @@
+env: fully-observable-one-hot
+algorithm: PPO
+policy: CnnPolicy
+save_id: 0

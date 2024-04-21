@@ -1,0 +1,4 @@
+env: img
+algorithm: PPO
+policy: MlpPolicy
+save_id: 2024-04-20_17-32-04
