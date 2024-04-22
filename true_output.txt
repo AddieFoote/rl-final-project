@@ -2,15 +2,39 @@ Epoch: 1, exploration: 30%, success rate: 0.00
 Generated new env
 Epoch: 2, exploration: 28%, success rate: 0.34
 Generated new env
-Epoch: 3, exploration: 27%, success rate: 0.33
+Epoch: 3, exploration: 27%, success rate: 0.35
 Generated new env
-Epoch: 4, exploration: 26%, success rate: 0.34
+Epoch: 4, exploration: 26%, success rate: 0.37
 Generated new env
-Epoch: 5, exploration: 24%, success rate: 0.38
+Epoch: 5, exploration: 24%, success rate: 0.36
 Generated new env
-Epoch: 6, exploration: 22%, success rate: 0.33
+Epoch: 6, exploration: 22%, success rate: 0.34
 Generated new env
-Epoch: 7, exploration: 21%, success rate: 0.35
+Epoch: 7, exploration: 21%, success rate: 0.36
 Generated new env
-Epoch: 8, exploration: 19%, success rate: 0.36
+Epoch: 8, exploration: 19%, success rate: 0.35
+Generated new env
+Epoch: 9, exploration: 18%, success rate: 0.36
+Generated new env
+Epoch: 10, exploration: 16%, success rate: 0.35
+Generated new env
+Epoch: 11, exploration: 15%, success rate: 0.32
+Generated new env
+Epoch: 12, exploration: 14%, success rate: 0.35
+Generated new env
+Epoch: 13, exploration: 12%, success rate: 0.36
+Generated new env
+Epoch: 14, exploration: 10%, success rate: 0.34
+Generated new env
+Epoch: 15, exploration: 9%, success rate: 0.31
+Generated new env
+Epoch: 16, exploration: 7%, success rate: 0.36
+Generated new env
+Epoch: 17, exploration: 6%, success rate: 0.33
+Generated new env
+Epoch: 18, exploration: 4%, success rate: 0.35
+Generated new env
+Epoch: 19, exploration: 3%, success rate: 0.36
+Generated new env
+Epoch: 20, exploration: 1%, success rate: 0.33
 Generated new env
