@@ -44,6 +44,9 @@ def write_args_to_file(args, file_path):
             f.write(f"{arg}: {getattr(args, arg)}\n")
 
 
+STANDARD_ENV_ROOM = "BabyAI-UnlockPickupDist-v0" # "BabyAI-OneRoomS8-v0" 
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Script description here")
     parser.add_argument('--env', choices=['one-hot', 'img', "fully-observable", "fully-observable-one-hot"], default='img', help="Environment type (normalized or one-hot)")
@@ -52,7 +55,7 @@ if __name__ == "__main__":
     parser.add_argument('--save-id', type=str, default=datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), help="save-id")
     args = parser.parse_args()
 
-    env = gymnasium.make("BabyAI-OneRoomS8-v0", render_mode="rgb_array")
+    env = gymnasium.make(STANDARD_ENV_ROOM, render_mode="rgb_array")
     if args.policy == 'CnnPolicy' and (args.algorithm == 'DQN' or args.algorithm == 'HER'):
         raise('DDPG and HER do not support CnnPolicy')
     
@@ -76,7 +79,8 @@ if __name__ == "__main__":
     )
 
     policy_type = args.policy
-    log_dir = os.path.join("./logs", args.algorithm, args.save_id)
+    logs_path = os.path.join("./logs", STANDARD_ENV_ROOM)
+    log_dir = os.path.join(logs_path, args.algorithm, args.save_id)
 
     if args.algorithm == 'PPO':
         model = stable_baselines3.PPO(policy_type, env, policy_kwargs=policy_kwargs, tensorboard_log=log_dir, verbose=1)
