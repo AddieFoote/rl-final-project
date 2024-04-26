@@ -30,25 +30,24 @@ class MinigridFeaturesExtractor(stable_baselines3.common.torch_layers.BaseFeatur
             )
 
         elif num_layer == 8:
-
             self.cnn = nn.Sequential(
                 nn.Conv2d(n_input_channels, 16, (2, 2)),
                 nn.ReLU(),
-                nn.Conv2d(16, 32, (2, 2)),
+                nn.Conv2d(16, 32, (3, 3), padding=1),
                 nn.ReLU(),
-                nn.Conv2d(32, 32, (2, 2)),
+                nn.Conv2d(32, 32, (3, 3), padding=1),
                 nn.ReLU(),
-                nn.Conv2d(32, 32, (2, 2)),
+                nn.Conv2d(32, 32, (3, 3), padding=1),
                 nn.ReLU(),
-                nn.Conv2d(32, 32, (2, 2)),
+                nn.Conv2d(32, 32, (3, 3), padding=1),
                 nn.ReLU(),
-                nn.Conv2d(32, 32, (2, 2)),
+                nn.Conv2d(32, 32, (3, 3), padding=1),
                 nn.ReLU(),
-                nn.Conv2d(32, 32, (2, 2)),
+                nn.Conv2d(32, 32, (3, 3), padding=1),
                 nn.ReLU(),
-                nn.Conv2d(32, 32, (2, 2)),
+                nn.Conv2d(32, 32, (3, 3), padding=1),
                 nn.ReLU(),
-                nn.Conv2d(32, 32, (2, 2)),
+                nn.Conv2d(32, 32, (3, 3), padding=1),
                 nn.ReLU(),
                 nn.Conv2d(32, 32, (2, 2)),
                 nn.ReLU(),
