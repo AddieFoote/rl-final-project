@@ -21,9 +21,11 @@ class SimpleEnv(MiniGridEnv):
         size=8,
         agent_start_pos=None,
         agent_start_dir=0,
+        goal_pos = None,
         max_steps: int | None = None,
         **kwargs,
     ):
+        self.goal_pos = goal_pos
         self.agent_start_pos = agent_start_pos
         self.agent_start_dir = agent_start_dir
 
@@ -45,27 +47,29 @@ class SimpleEnv(MiniGridEnv):
     def _gen_mission():
         return "grand mission"
 
-    def place_our_obj(self, grid, obj, max_tries=100) -> tuple[int, int]:
+    def place_our_obj(self, grid, obj, max_tries=100, forced_x = None, forced_y = None) -> tuple[int, int]:
         w, h = lambda : random.randint(0, grid.width - 1) , lambda : random.randint(0, grid.height - 1)
-
         for _ in range(max_tries):
-            pos = (w(), h())
+            if forced_x is not None and forced_y is not None:
+                print("using forced position")
+                pos = (forced_x, forced_y)
+            elif forced_x is not None or forced_y is not None:
+                raise RuntimeError("only passed one forced pos")
+            else:
+                pos = (w(), h())
+
+                
             if grid.get(*pos) is None:
                 grid.set(*pos, obj)
 
                 obj.cur_pos = pos
                 obj.init_pos = pos
-                return pos
-        
-            
-        raise RuntimeError("bro how did we not get it")
-
-        
+                return pos            
+        raise RuntimeError("bro how did we not get it")      
 
     def _gen_grid(self, width, height):
         self.grid = Grid(width, height) # Create an empty grid
         self.goal_grid = Grid(width, height)
-        
         
         self.grid.wall_rect(0, 0, width, height) # Generate the surrounding walls
         self.goal_grid.wall_rect(0, 0, width, height)
@@ -79,15 +83,16 @@ class SimpleEnv(MiniGridEnv):
         self.goal_ball = Ball(COLOR_NAMES[0])
 
         obj_pos = self.place_our_obj(self.grid, self.real_ball)
-        goal_obj_pos = self.place_our_obj(self.goal_grid, self.goal_ball)
+
+        # set_x_temp = 4
+        # set_y_temp = 4
+        if self.goal_pos is None:
+            goal_obj_pos = self.place_our_obj(self.goal_grid, self.goal_ball)
+        else:
+            goal_obj_pos = self.place_our_obj(self.goal_grid, self.goal_ball, forced_x = self.goal_pos[0], forced_y = self.goal_pos[1])
+
         print(f"Our goal is located at {goal_obj_pos}")
 
-        # self.grid.set(5, 1, Goal()) # Place the goal
-        # self.grid.set(4, 1, Floor()) # Place the object goal
-        # self.grid.set(5, 1, Goal()) # Place the goal
-
-
-        # Place the agent
         if self.agent_start_pos is not None:
             self.agent_pos = self.agent_start_pos
             self.agent_dir = self.agent_start_dir
@@ -102,22 +107,21 @@ class SimpleEnv(MiniGridEnv):
         
         
         if (self.goal_ball.cur_pos[0] == self.real_ball.cur_pos[0]) and (self.goal_ball.cur_pos[1] == self.real_ball.cur_pos[1]):
-            # import ipdb; ipdb.set_trace()
-            print("wooooo reward time", self.goal_ball.cur_pos, self.real_ball.cur_pos)
             reward = self._reward()
-            if reward != 0:
-                print('got the reward')
-
-
+            # if reward != 0:
+            #     print('got the reward')
+            terminated = True
             done = True
-
         return obs, reward, done, terminated, info
 
 
-# class BetterBall(Ball):
-#     def __init__():
-#         super().__init__()
-#         set_pos
+    def get_the_goal(self, mode="position"):
+        if mode == "position":
+            return self.goal_ball.cur_pos
+        elif mode == "grid":
+            return self.goal_grid.encode()
+        else:
+            raise ValueError("wrong input to get_the_goal lol")
 
 def main():
     env = SimpleEnv(render_mode="human")

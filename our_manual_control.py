@@ -1,3 +1,5 @@
+# modified from the existing manual control provided by minigrid, but it was broken
+
 #!/usr/bin/env python3
 
 from __future__ import annotations
