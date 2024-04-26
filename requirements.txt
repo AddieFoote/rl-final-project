@@ -11,3 +11,4 @@ tensorboard
 torch
 scipy
 seaborn
+stable_baselines3
