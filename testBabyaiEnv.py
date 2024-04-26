@@ -1,6 +1,7 @@
 # python utils
 from datetime import datetime
 import os
+import random
 
 # RL packages
 import argparse
@@ -10,10 +11,15 @@ import numpy as np
 import stable_baselines3
 import torch
 from torch import nn
+from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
+from stable_baselines3.common.logger import configure
+
+
 
 # Custom packages
 from goal_env import SimpleEnv
 from full_observable import OneHotFullyObsWrapper
+
 
 
 
@@ -82,17 +88,7 @@ def write_args_to_file(args, file_path):
 
  #"BabyAI-UnlockPickupDist-v0" # "BabyAI-OneRoomS8-v0" 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Script description here")
-    parser.add_argument('--env', choices=['custom-set-goal', 'custon-dynamic', 'room'], default='custom', help="Environment type")
-    parser.add_argument('--obs', choices=['one-hot', 'img', "fully-observable", "fully-observable-one-hot"], default='img', help="Environment type (normalized or one-hot)")
-    parser.add_argument('--algorithm', choices=['PPO', 'A2C', 'DDPG', 'DQN', 'HER', 'SAC', 'TD3'], default='PPO')
-    parser.add_argument('--policy', choices=['CnnPolicy', 'MlpPolicy'], default='CnnPolicy')
-    parser.add_argument('--save-id', type=str, default=datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), help="save-id")
-    parser.add_argument('--num-timesteps', type=int, default=2e5, help="Number of timesteps to train for")
-    parser.add_argument('--num-conv-layers', type=int, default=3, help="Number of convolutional layers")
-    args = parser.parse_args()
-
+def make_env(args, rank, seed=0):
     if args.env == 'custom-set-goal':
         env = SimpleEnv(render_mode="rgb_array", goal_pos = [4, 4])
         print_label_for_env = "custom_env"
@@ -112,7 +108,7 @@ if __name__ == "__main__":
     elif args.obs == 'img':
         env = minigrid.wrappers.ImgObsWrapper(env)
     elif args.obs == 'fully-observable':
-        env = minigrid.wrappers.FullyObsWrapper(env)
+        env = minigrid.wrappers.FullyObsWrapper(env)    
         env = minigrid.wrappers.ImgObsWrapper(env)
     elif args.obs == "fully-observable-one-hot":
         env = OneHotFullyObsWrapper(env)
@@ -120,14 +116,55 @@ if __name__ == "__main__":
     else:
         raise('Invalid obs type selected')
     
+    # if env.seed == 0:
+    #     env.seed(random.randint(0, 50000))
+    # else:
+    #     env.seed(env.seed + rank)
+        
+    return env, print_label_for_env
+
+
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Script description here")
+    parser.add_argument('--env', choices=['custom-set-goal', 'custon-dynamic', 'room'], default='custom', help="Environment type")
+    parser.add_argument('--obs', choices=['one-hot', 'img', "fully-observable", "fully-observable-one-hot"], default='img', help="Environment type (normalized or one-hot)")
+    parser.add_argument('--algorithm', choices=['PPO', 'A2C', 'DDPG', 'DQN', 'HER', 'SAC', 'TD3'], default='PPO')
+    parser.add_argument('--policy', choices=['CnnPolicy', 'MlpPolicy'], default='CnnPolicy')
+    parser.add_argument('--save-id', type=str, default=datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), help="save-id")
+    parser.add_argument('--num-timesteps', type=int, default=2e5, help="Number of timesteps to train for")
+    parser.add_argument('--num-conv-layers', type=int, default=3, help="Number of convolutional layers")
+    parser.add_argument('--num_envs', type=int, default = 1, help="Number of environments to run in parallel - 1 means no parallelization")
+    args = parser.parse_args()
+
+    
+    
+    #env, print_label_for_env = make_env(args.env, args, 0)
+    
+    
+        
+
+    
+    
     policy_kwargs = dict(
         features_extractor_class=MinigridFeaturesExtractor,
         features_extractor_kwargs=dict(features_dim=128, num_layer=args.num_conv_layers),
     )
 
+    
+    if args.num_envs > 1:
+        print_label_for_env = make_env(args, 0)[1] + "_parallel"
+        envfunc = lambda: make_env(args, 0)[0]
+        env = DummyVecEnv([envfunc for i in range(4)])
+    else:
+        env, print_label_for_env = make_env(args, 0)
+        
+    
     policy_type = args.policy
     logs_path = os.path.join("./logs", print_label_for_env)
     log_dir = os.path.join(logs_path, args.algorithm, args.save_id)
+    
 
     if args.algorithm == 'PPO':
         model = stable_baselines3.PPO(policy_type, env, policy_kwargs=policy_kwargs, tensorboard_log=log_dir, verbose=1)
