@@ -51,7 +51,7 @@ def write_args_to_file(args, file_path):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Script description here")
-    parser.add_argument('--env', choices=['custom-set-goal', 'custon-dynamic' 'room'], default='custom', help="Environment type")
+    parser.add_argument('--env', choices=['custom-set-goal', 'custon-dynamic', 'room'], default='custom', help="Environment type")
     parser.add_argument('--obs', choices=['one-hot', 'img', "fully-observable", "fully-observable-one-hot"], default='img', help="Environment type (normalized or one-hot)")
     parser.add_argument('--algorithm', choices=['PPO', 'A2C', 'DDPG', 'DQN', 'HER', 'SAC', 'TD3'], default='PPO')
     parser.add_argument('--policy', choices=['CnnPolicy', 'MlpPolicy'], default='CnnPolicy')
@@ -65,6 +65,8 @@ if __name__ == "__main__":
         env = SimpleEnv(render_mode="rgb_array")
         print_label_for_env = "custom_env"
     elif args.env == 'room':
+
+
         env = gymnasium.make("BabyAI-OneRoomS8-v0" , render_mode="rgb_array")
         print_label_for_env = "BabyAI-OneRoomS8-v0"
 
