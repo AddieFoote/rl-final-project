@@ -1,70 +1,13 @@
-# This file may be used to create an environment using:
-# $ conda create --name <env> --file <this file>
-# platform: osx-64
-# blas
-bottleneck
-# bzip2
-# ca-certificates
-cffi
-cloudpickle
-contourpy
-cycler
-# expat
-farama-notifications
-filelock
-fonttools
-fsspec
+
 gym
-# gym-notice
 gymnasium
-intel-openmp
-jinja2
-kiwisolver
-#libcxx
-#libffi
-#libprotobuf
-#libuv
-markupsafe
 matplotlib
 minigrid
-mkl
-mkl-service
-mkl_fft
-mkl_random
-mpmath
-#ncurses
-networkx
-ninja
-#ninja-base
 numexpr
 numpy
-#numpy-base
-#openssl
-packaging
 pandas
 pillow
-pip
-pycparser
-pygame
-pyparsing
-#python
-#python-dateutil
-#python-tzdata
-torch
 tensorboard
-pytz
-readline
+torch
 scipy
 seaborn
-setuptools
-six
-stable_baselines3
-#sqlite
-#sympy
-#tbb
-#tk
-#typing_extensions
-#tzdata
-#wheel
-#xz
-#zlib
