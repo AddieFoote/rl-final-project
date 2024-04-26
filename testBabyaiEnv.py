@@ -15,18 +15,51 @@ from torch import nn
 from goal_env import SimpleEnv
 
 class MinigridFeaturesExtractor(stable_baselines3.common.torch_layers.BaseFeaturesExtractor):
-    def __init__(self, observation_space: gymnasium.Space, features_dim: int = 512, normalized_image: bool = False) -> None:
+    def __init__(self, observation_space: gymnasium.Space, features_dim: int = 512, normalized_image: bool = False, num_layer=3) -> None:
         super().__init__(observation_space, features_dim)
         n_input_channels = observation_space.shape[0]
-        self.cnn = nn.Sequential(
-            nn.Conv2d(n_input_channels, 16, (2, 2)),
-            nn.ReLU(),
-            nn.Conv2d(16, 32, (2, 2)),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, (2, 2)),
-            nn.ReLU(),
-            nn.Flatten(),
-        )
+        if num_layer == 3:
+            self.cnn = nn.Sequential(
+                nn.Conv2d(n_input_channels, 16, (2, 2)),
+                nn.ReLU(),
+                nn.Conv2d(16, 32, (2, 2)),
+                nn.ReLU(),
+                nn.Conv2d(32, 64, (2, 2)),
+                nn.ReLU(),
+                nn.Flatten(),
+            )
+
+        elif num_layer == 8:
+
+            self.cnn = nn.Sequential(
+                nn.Conv2d(n_input_channels, 16, (2, 2)),
+                nn.ReLU(),
+                nn.Conv2d(16, 32, (2, 2)),
+                nn.ReLU(),
+                nn.Conv2d(32, 32, (2, 2)),
+                nn.ReLU(),
+                nn.Conv2d(32, 32, (2, 2)),
+                nn.ReLU(),
+                nn.Conv2d(32, 32, (2, 2)),
+                nn.ReLU(),
+                nn.Conv2d(32, 32, (2, 2)),
+                nn.ReLU(),
+                nn.Conv2d(32, 32, (2, 2)),
+                nn.ReLU(),
+                nn.Conv2d(32, 32, (2, 2)),
+                nn.ReLU(),
+                nn.Conv2d(32, 32, (2, 2)),
+                nn.ReLU(),
+                nn.Conv2d(32, 32, (2, 2)),
+                nn.ReLU(),
+                nn.Conv2d(32, 32, (2, 2)),
+                nn.ReLU(),
+                nn.Conv2d(32, 64, (2, 2)),
+                nn.ReLU(),
+                nn.Flatten(),
+            )
+        else :
+            raise('Invalid number of layers')
 
         with torch.no_grad():
             n_flatten = self.cnn(torch.as_tensor(observation_space.sample()[None]).float()).shape[1]
@@ -45,9 +78,7 @@ def write_args_to_file(args, file_path):
         for arg in vars(args):
             f.write(f"{arg}: {getattr(args, arg)}\n")
 
-
  #"BabyAI-UnlockPickupDist-v0" # "BabyAI-OneRoomS8-v0" 
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Script description here")
@@ -57,6 +88,7 @@ if __name__ == "__main__":
     parser.add_argument('--policy', choices=['CnnPolicy', 'MlpPolicy'], default='CnnPolicy')
     parser.add_argument('--save-id', type=str, default=datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), help="save-id")
     parser.add_argument('--num-timesteps', type=int, default=2e5, help="Number of timesteps to train for")
+    parser.add_argument('--num-conv-layers', type=int, default=3, help="Number of convolutional layers")
     args = parser.parse_args()
 
     if args.env == 'custom-set-goal':
@@ -88,7 +120,7 @@ if __name__ == "__main__":
     
     policy_kwargs = dict(
         features_extractor_class=MinigridFeaturesExtractor,
-        features_extractor_kwargs=dict(features_dim=128),
+        features_extractor_kwargs=dict(features_dim=128, num_layer=args.num_conv_layers),
     )
 
     policy_type = args.policy
