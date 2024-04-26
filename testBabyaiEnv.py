@@ -56,17 +56,16 @@ if __name__ == "__main__":
     parser.add_argument('--algorithm', choices=['PPO', 'A2C', 'DDPG', 'DQN', 'HER', 'SAC', 'TD3'], default='PPO')
     parser.add_argument('--policy', choices=['CnnPolicy', 'MlpPolicy'], default='CnnPolicy')
     parser.add_argument('--save-id', type=str, default=datetime.now().strftime("%Y-%m-%d_%H-%M-%S"), help="save-id")
+    parser.add_argument('--num-timesteps', type=int, default=2e5, help="Number of timesteps to train for")
     args = parser.parse_args()
 
     if args.env == 'custom-set-goal':
-        env = SimpleEnv(render_mode="rgb_array", goal_pos = [4, 5])
+        env = SimpleEnv(render_mode="rgb_array", goal_pos = [4, 4])
         print_label_for_env = "custom_env"
     elif args.env == 'custom-dynamic':
         env = SimpleEnv(render_mode="rgb_array")
         print_label_for_env = "custom_env"
     elif args.env == 'room':
-
-
         env = gymnasium.make("BabyAI-OneRoomS8-v0" , render_mode="rgb_array")
         print_label_for_env = "BabyAI-OneRoomS8-v0"
 
@@ -120,4 +119,4 @@ if __name__ == "__main__":
     os.makedirs(log_dir, exist_ok=True)
     write_args_to_file(args, log_dir + "/arguments.txt")
 
-    train_with_PPO(model, log_dir)
+    train_with_PPO(model, log_dir, num_timesteps=args.num_timesteps)
