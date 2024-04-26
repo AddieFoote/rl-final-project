@@ -13,6 +13,9 @@ from torch import nn
 
 # Custom packages
 from goal_env import SimpleEnv
+from full_observable import OneHotFullyObsWrapper
+
+
 
 class MinigridFeaturesExtractor(stable_baselines3.common.torch_layers.BaseFeaturesExtractor):
     def __init__(self, observation_space: gymnasium.Space, features_dim: int = 512, normalized_image: bool = False, num_layer=3) -> None:
@@ -112,8 +115,8 @@ if __name__ == "__main__":
         env = minigrid.wrappers.FullyObsWrapper(env)
         env = minigrid.wrappers.ImgObsWrapper(env)
     elif args.obs == "fully-observable-one-hot":
-        raise('Fully observable one-hot not implemented yet')
-        # TODO: Implement fully observable one-hot'        
+        env = OneHotFullyObsWrapper(env)
+        env = minigrid.wrappers.ImgObsWrapper(env)
     else:
         raise('Invalid obs type selected')
     
