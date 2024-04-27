@@ -98,7 +98,7 @@ def make_env(args, rank):
         # import ipdb; ipdb.set_trace()
         print_label_for_env = "custom_env"
     elif args.env == 'custom-dynamic' and args.obs == 'fully-observable':
-        env = SimpleEnv(render_mode="rgb_array", goal_encode_mode='grid', image_encoding_mode='grid', size=5)
+        env = SimpleEnv(render_mode="rgb_array", goal_encode_mode='grid', image_encoding_mode='grid', size=args.size)
         env = GoalSpecifiedWrapper(env)
         print_label_for_env = "custom_env"
     elif args.env == 'room':
@@ -145,8 +145,10 @@ if __name__ == "__main__":
     parser.add_argument('--num-timesteps', type=int, default=2e5, help="Number of timesteps to train for")
     parser.add_argument('--num-conv-layers', type=int, default=3, help="Number of convolutional layers")
     parser.add_argument('--num_envs', type=int, default = 1, help="Number of environments to run in parallel - 1 means no parallelization")
+    parser.add_argument('--size', type=int, default = 5, help="size of square of environment")
     args = parser.parse_args()
 
+    if args.size != 5: assert 'custom' in args.env
     
     
     #env, print_label_for_env = make_env(args.env, args)
