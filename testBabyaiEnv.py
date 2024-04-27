@@ -159,7 +159,6 @@ if __name__ == "__main__":
 
     eval_callback = None
     if args.num_envs > 1:
-        print(arg.num_envs)
         print_label_for_env = make_env(args, 0)[1] + "_parallel"
         envfunc = lambda: make_env(args, 0)[0]
         env = DummyVecEnv([envfunc for i in range(4)])
