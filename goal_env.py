@@ -138,7 +138,7 @@ class SimpleEnv(MiniGridEnv):
 
     def check_goal_reached(self):
         if self.goal_encode_mode == "position":
-            assert len(self.goal_balls) == 1, "only one goal ball allowed for position encoding of goals"
+            assert self.number_of_balls, "only one ball allowed for position encoding of goals"
             return (self.goal_balls[0].cur_pos[0] == self.real_balls[0].cur_pos[0]) and (self.goal_balls[0].cur_pos[1] == self.real_balls[0].cur_pos[1])
         elif self.goal_encode_mode == "grid":
             # find agent position
@@ -154,9 +154,6 @@ class SimpleEnv(MiniGridEnv):
     
             
             
-        
-
-
     def step(self, action):
         obs, reward, done, terminated, info = super().step(action)
         if self.image_encoding_mode == 'grid':
@@ -178,15 +175,23 @@ class SimpleEnv(MiniGridEnv):
         return obs, reward, done, terminated, info
 
     def reset(self, **kwargs):
-        obs, info = super().reset(**kwargs)
-        if self.image_encoding_mode == 'grid':
-            full_grid = self.grid.encode()
-            full_grid[self.agent_pos[0]][self.agent_pos[1]] = np.array(
-                [OBJECT_TO_IDX["agent"], COLOR_TO_IDX["red"], self.agent_dir]
-            )
-            obs['image'] = full_grid
-        if self.goal_encode_mode != None:
-            obs['goal'] = self.goal_encoded
+        # don't spawn with the goal already reached
+        reset_once = False
+        while not reset_once or self.check_goal_reached(): 
+            obs, info = super().reset(**kwargs)
+            if self.image_encoding_mode == 'grid':
+                full_grid = self.grid.encode()
+                full_grid[self.agent_pos[0]][self.agent_pos[1]] = np.array(
+                    [OBJECT_TO_IDX["agent"], COLOR_TO_IDX["red"], self.agent_dir]
+                )
+                obs['image'] = full_grid
+            if self.goal_encode_mode != None:
+                obs['goal'] = self.goal_encoded
+                
+            reset_once = True
+            # if self.check_goal_reached():
+            #     print("resetting double")
+        
         return obs, info
 
     def set_the_goal(self):
