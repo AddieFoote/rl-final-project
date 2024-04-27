@@ -11,7 +11,7 @@ class GoalSpecifiedWrapper(ObservationWrapper):
         """
         super().__init__(env)
         self.observation_space = spaces.Box(
-            low=0,
+            low=0, 
             high=255,
             shape=(self.env.grid.height,
                    self.env.grid.height,
@@ -23,4 +23,37 @@ class GoalSpecifiedWrapper(ObservationWrapper):
 
     def observation(self, obs):        
         return np.concatenate([obs["image"], obs["goal"]], axis=2)
+
+
+
+class GoalAndStateDictWrapper(ObservationWrapper):
+    def __init__(self, env):
+        """A wrapper that makes image the only observation.
+
+        Args:
+            env: The environment to apply the wrapper
+        """
+        super().__init__(env)
+        self.observation_space = spaces.Dict({
+            "image": self.observation_space.spaces['image'],
+            "goal": self.observation_space.spaces['goal'],
+        })
+        print(self.observation_space)
+        #     spaces.Box(
+        #     low=0, 
+        #     high=255,
+        #     shape=(self.env.grid.height,
+        #            self.env.grid.height,
+        #            self.observation_space.spaces["image"].shape[2]*2)
+        # )
+        # self.observation_space = spaces.Dict(
+        #     {**self.observation_space.spaces, "image": env.observation_space.spaces["image"]}
+        # )
+
+    def observation(self, obs):   
+        out = {}
+        out['image'] = obs["image"]
+        out['goal'] = obs["goal"]
+        return out
+
 

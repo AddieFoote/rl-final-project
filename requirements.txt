@@ -1,6 +1,6 @@
-
 gym
 gymnasium
+ipdb
 matplotlib
 minigrid
 numexpr

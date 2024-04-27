@@ -19,70 +19,15 @@ from stable_baselines3.common.callbacks import EvalCallback
 # Custom packages
 from goal_env import SimpleEnv
 from full_observable import OneHotFullyObsWrapper
-from goal_conditioned_wrappers import GoalSpecifiedWrapper
+from goal_conditioned_wrappers import GoalSpecifiedWrapper, GoalAndStateDictWrapper
+from feature_exctractors import MinigridFeaturesExtractor, FeaturesStateGridGoalPos, SameGoalStateEncoder
 
-
-
-class MinigridFeaturesExtractor(stable_baselines3.common.torch_layers.BaseFeaturesExtractor):
-    def __init__(self, observation_space: gymnasium.Space, features_dim: int = 512, normalized_image: bool = False, num_layer=3) -> None:
-        super().__init__(observation_space, features_dim)
-        n_input_channels = observation_space.shape[0]
-        if num_layer == 3:
-            self.cnn = nn.Sequential(
-                nn.Conv2d(n_input_channels, 16, (2, 2)),
-                nn.ReLU(),
-                nn.Conv2d(16, 32, (2, 2)),
-                nn.ReLU(),
-                nn.Conv2d(32, 64, (2, 2)),
-                nn.ReLU(),
-                nn.Flatten(),
-            )
-
-        elif num_layer == 8:
-            self.cnn = nn.Sequential(
-                nn.Conv2d(n_input_channels, 16, (2, 2)),
-                nn.ReLU(),
-                nn.Conv2d(16, 32, (3, 3), padding=1),
-                nn.ReLU(),
-                nn.Conv2d(32, 32, (3, 3), padding=1),
-                nn.ReLU(),
-                nn.Conv2d(32, 32, (3, 3), padding=1),
-                nn.ReLU(),
-                nn.Conv2d(32, 32, (3, 3), padding=1),
-                nn.ReLU(),
-                nn.Conv2d(32, 32, (3, 3), padding=1),
-                nn.ReLU(),
-                nn.Conv2d(32, 32, (3, 3), padding=1),
-                nn.ReLU(),
-                nn.Conv2d(32, 32, (3, 3), padding=1),
-                nn.ReLU(),
-                nn.Conv2d(32, 32, (3, 3), padding=1),
-                nn.ReLU(),
-                nn.Conv2d(32, 32, (2, 2)),
-                nn.ReLU(),
-                nn.Conv2d(32, 32, (2, 2)),
-                nn.ReLU(),
-                nn.Conv2d(32, 64, (2, 2)),
-                nn.ReLU(),
-                nn.Flatten(),
-            )
-        else :
-            raise('Invalid number of layers')
-
-        with torch.no_grad():
-            n_flatten = self.cnn(torch.as_tensor(observation_space.sample()[None]).float()).shape[1]
-
-        self.linear = nn.Sequential(nn.Linear(n_flatten, features_dim), nn.ReLU())
-
-    def forward(self, observations: torch.Tensor) -> torch.Tensor:
-        return self.linear(self.cnn(observations))
 
 def train_with_PPO(model, log_dir, num_timesteps=2e5, eval_callback=None):
     if eval_callback is not None:
         model = model.learn(num_timesteps, callback = eval_callback) 
     else:
-        model = model.learn(num_timesteps) # train for 200k timestep
-    
+        model = model.learn(num_timesteps) # train
     model.save(log_dir)
 
 def write_args_to_file(args, file_path):
@@ -90,16 +35,21 @@ def write_args_to_file(args, file_path):
         for arg in vars(args):
             f.write(f"{arg}: {getattr(args, arg)}\n")
 
- #"BabyAI-UnlockPickupDist-v0" # "BabyAI-OneRoomS8-v0" 
-
 def make_env(args, rank):
     if args.env == 'custom-set-goal':
         env = SimpleEnv(render_mode="rgb_array", size = args.size, goal_pos = [2, 2], goal_encode_mode='position')
         # import ipdb; ipdb.set_trace()
         print_label_for_env = "custom_env"
     elif args.env == 'custom-dynamic' and args.obs == 'fully-observable':
-        env = SimpleEnv(render_mode="rgb_array", goal_encode_mode='grid', image_encoding_mode='grid', size=args.size)
-        env = GoalSpecifiedWrapper(env)
+        if args.goal_features == 'one-pos':
+            goal_encode_mode = 'position'
+        else:
+            goal_encode_mode = 'grid'
+        env = SimpleEnv(render_mode="rgb_array", goal_encode_mode=goal_encode_mode, image_encoding_mode='grid', size=args.size)
+        if args.goal_features == "fully-observable":
+            env = GoalSpecifiedWrapper(env)
+        else:
+            env = GoalAndStateDictWrapper(env)
         print_label_for_env = "custom_env"
     elif args.env == 'room':
         env = gymnasium.make("BabyAI-OneRoomS8-v0" , render_mode="rgb_array")
@@ -133,8 +83,6 @@ def make_env(args, rank):
     return env, print_label_for_env
 
 
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Script description here")
     parser.add_argument('--env', choices=['custom-set-goal', 'custom-dynamic', 'room'], default='custom-set-goal', help="Environment type")
@@ -146,14 +94,26 @@ if __name__ == "__main__":
     parser.add_argument('--num-conv-layers', type=int, default=3, help="Number of convolutional layers")
     parser.add_argument('--num_envs', type=int, default = 1, help="Number of environments to run in parallel - 1 means no parallelization")
     parser.add_argument('--size', type=int, default = 5, help="size of square of environment")
+    parser.add_argument("--goal-features", type=str, choices=['fully-observable', 'one-pos', 'same-network-fully-obs'], default='fully-observable')
     args = parser.parse_args()
 
     if args.size != 5: assert 'custom' in args.env
-    
+    if args.goal_features != "fully-observable": 
+        assert args.env == 'custom-dynamic'
+        args.policy = 'MultiInputPolicy'
+        print("Using Multi Input Policy")
+
     
     #env, print_label_for_env = make_env(args.env, args)
+    if args.goal_features == "fully-observable":
+        features_extractor_class=MinigridFeaturesExtractor
+    elif args.goal_features == "one-pos":
+        features_extractor_class=FeaturesStateGridGoalPos 
+    elif args.goal_features == 'same-network-fully-obs':
+        features_extractor_class=SameGoalStateEncoder
+
     policy_kwargs = dict(
-        features_extractor_class=MinigridFeaturesExtractor,
+        features_extractor_class=features_extractor_class,
         features_extractor_kwargs=dict(features_dim=128, num_layer=args.num_conv_layers),
     )
 
