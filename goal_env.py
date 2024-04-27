@@ -191,7 +191,8 @@ class SimpleEnv(MiniGridEnv):
 
     def set_the_goal(self):
         if self.goal_encode_mode == "position":
-            self.goal_encoded = np.array(self.goal_ball.cur_pos)
+            assert self.number_of_balls == 1, "only one ball currently allowed for position encoding of goals"
+            self.goal_encoded = np.array(self.goal_balls[0].cur_pos)
         elif self.goal_encode_mode == "grid":
             # import ipdb; ipdb.set_trace()
             # self.observation_space.spaces["grid"]

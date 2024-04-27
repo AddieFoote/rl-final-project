@@ -126,7 +126,7 @@ if __name__ == "__main__":
         eval_env = envfunc()
         logs_path = os.path.join("./logs", print_label_for_env)
         log_dir = os.path.join(logs_path, args.algorithm, args.save_id)
-        eval_callback = EvalCallback(eval_env, log_path=log_dir, eval_freq= 2048, n_eval_episodes = 12, render = False)
+        eval_callback = EvalCallback(eval_env, log_path=log_dir, best_model_save_path=log_dir, eval_freq= 2048, n_eval_episodes = 12, render = False)
     else:
         env, print_label_for_env = make_env(args, 0)
     
