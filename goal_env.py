@@ -1,5 +1,5 @@
 import gym
-from gym import spaces
+from gymnasium import logger, spaces
 import numpy as np
 import torch
 import minigrid.wrappers as wrappers
@@ -56,6 +56,14 @@ class SimpleEnv(MiniGridEnv):
             max_steps=max_steps,
             **kwargs,
         )
+        if self.goal_encode_mode == 'grid':
+            self.observation_space['goal'] = spaces.Box(low=0, high=255, shape=(size, size, 3), dtype=np.uint8)
+        elif self.goal_encode_mode == 'position':
+            self.observation_space['goal'] = spaces.Box(low=0, high=255, shape=(2,), dtype=np.uint8)
+        
+        if self.image_encoding_mode == 'grid':
+            self.observation_space['image'] = spaces.Box(low=0, high=255, shape=(size, size, 3), dtype=np.uint8)
+
         # self._gen_grid(size, size)
 
 
@@ -153,7 +161,7 @@ class SimpleEnv(MiniGridEnv):
 
     def set_the_goal(self):
         if self.goal_encode_mode == "position":
-            self.goal_encoded = self.goal_ball.cur_pos
+            self.goal_encoded = np.array(self.goal_ball.cur_pos)
         elif self.goal_encode_mode == "grid":
             # import ipdb; ipdb.set_trace()
             # self.observation_space.spaces["grid"]
