@@ -98,8 +98,7 @@ def make_env(args, rank):
         # import ipdb; ipdb.set_trace()
         print_label_for_env = "custom_env"
     elif args.env == 'custom-dynamic' and args.obs == 'fully-observable':
-        import ipdb; ipdb.set_trace()
-        env = SimpleEnv(render_mode="rgb_array", goal_encode_mode='grid', image_encoding_mode='grid', size=5)
+        env = SimpleEnv(render_mode="human", goal_encode_mode='grid', image_encoding_mode='grid', size=5)
         env = GoalSpecifiedWrapper(env)
         print_label_for_env = "custom_env"
     elif args.env == 'room':
@@ -110,7 +109,6 @@ def make_env(args, rank):
         
     if args.policy == 'CnnPolicy' and (args.algorithm == 'DQN' or args.algorithm == 'HER'):
         raise('DDPG and HER do not support CnnPolicy')
-    
     if args.env == 'custom-dynamic' and args.obs == 'fully-observable':
         pass
     elif args.obs == "one-hot":
@@ -169,6 +167,7 @@ if __name__ == "__main__":
         eval_callback = EvalCallback(eval_env, log_path=log_dir, eval_freq= 2048, n_eval_episodes = 12, render = False)
     else:
         env, print_label_for_env = make_env(args, 0)
+    
     
     policy_type = args.policy
     logs_path = os.path.join("./logs", print_label_for_env)

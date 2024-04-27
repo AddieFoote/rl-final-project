@@ -13,15 +13,14 @@ class GoalSpecifiedWrapper(ObservationWrapper):
         self.observation_space = spaces.Box(
             low=0,
             high=255,
-            shape=(self.observation_space.spaces["image"].shape[0]*2,
-                   self.observation_space.spaces["image"].shape[1],
-                   self.observation_space.spaces["image"].shape[2])
+            shape=(self.env.grid.height,
+                   self.env.grid.height,
+                   self.observation_space.spaces["image"].shape[2]*2)
         )
         # self.observation_space = spaces.Dict(
         #     {**self.observation_space.spaces, "image": env.observation_space.spaces["image"]}
         # )
 
-    def observation(self, obs):
-        
-        return np.concatenate([obs["image"], obs["goal"]], axis=0)
+    def observation(self, obs):        
+        return np.concatenate([obs["image"], obs["goal"]], axis=2)
 

@@ -32,10 +32,12 @@ class SimpleEnv(MiniGridEnv):
         image_encoding_mode='img', 
         **kwargs,
     ):
-        self.goal_encode_mode = goal_encode_mode
+        
         self.goal_pos = goal_pos
         self.agent_start_pos = agent_start_pos
         self.agent_start_dir = agent_start_dir
+        
+        self.goal_encode_mode = goal_encode_mode
         self.image_encoding_mode = image_encoding_mode
         if self.goal_pos == None: assert self.goal_encode_mode != None
 
@@ -59,6 +61,7 @@ class SimpleEnv(MiniGridEnv):
 
     @staticmethod
     def _gen_mission():
+         
         return "grand mission"
 
     def place_our_obj(self, grid, obj, max_tries=100, forced_x = None, forced_y = None) -> tuple[int, int]:
@@ -119,7 +122,11 @@ class SimpleEnv(MiniGridEnv):
     def step(self, action):
         obs, reward, done, terminated, info = super().step(action)
         if self.image_encoding_mode == 'grid':
-            obs['image'] = self.grid.encode()
+            full_grid = self.grid.encode()
+            full_grid[self.agent_pos[0]][self.agent_pos[1]] = np.array(
+                [OBJECT_TO_IDX["agent"], COLOR_TO_IDX["red"], self.agent_dir]
+            )
+            obs['image'] = full_grid
         if self.goal_encode_mode != None:
             obs['goal'] = self.goal_encoded
         reward = 0
@@ -143,7 +150,6 @@ class SimpleEnv(MiniGridEnv):
         if self.goal_encode_mode != None:
             obs['goal'] = self.goal_encoded
         return obs, info
-
 
     def set_the_goal(self):
         if self.goal_encode_mode == "position":
