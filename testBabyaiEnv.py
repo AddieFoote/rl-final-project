@@ -94,7 +94,7 @@ def write_args_to_file(args, file_path):
 
 def make_env(args, rank):
     if args.env == 'custom-set-goal':
-        env = SimpleEnv(render_mode="rgb_array", size = 5, goal_pos = [2, 2], goal_encode_mode='position')
+        env = SimpleEnv(render_mode="rgb_array", size = args.size, goal_pos = [2, 2], goal_encode_mode='position')
         # import ipdb; ipdb.set_trace()
         print_label_for_env = "custom_env"
     elif args.env == 'custom-dynamic' and args.obs == 'fully-observable':
