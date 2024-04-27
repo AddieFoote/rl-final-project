@@ -98,7 +98,7 @@ def make_env(args, rank):
         # import ipdb; ipdb.set_trace()
         print_label_for_env = "custom_env"
     elif args.env == 'custom-dynamic' and args.obs == 'fully-observable':
-        env = SimpleEnv(render_mode="human", goal_encode_mode='grid', image_encoding_mode='grid', size=5)
+        env = SimpleEnv(render_mode="rgb_array", goal_encode_mode='grid', image_encoding_mode='grid', size=5)
         env = GoalSpecifiedWrapper(env)
         print_label_for_env = "custom_env"
     elif args.env == 'room':
