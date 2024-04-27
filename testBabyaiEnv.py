@@ -98,6 +98,7 @@ def make_env(args, rank):
         # import ipdb; ipdb.set_trace()
         print_label_for_env = "custom_env"
     elif args.env == 'custom-dynamic' and args.obs == 'fully-observable':
+        import ipdb; ipdb.set_trace()
         env = SimpleEnv(render_mode="rgb_array", goal_encode_mode='grid', image_encoding_mode='grid', size=5)
         env = GoalSpecifiedWrapper(env)
         print_label_for_env = "custom_env"
@@ -110,7 +111,7 @@ def make_env(args, rank):
     if args.policy == 'CnnPolicy' and (args.algorithm == 'DQN' or args.algorithm == 'HER'):
         raise('DDPG and HER do not support CnnPolicy')
     
-    if 'custom' in args.env:
+    if args.env == 'custom-dynamic' and args.obs == 'fully-observable':
         pass
     elif args.obs == "one-hot":
         env = minigrid.wrappers.OneHotPartialObsWrapper(env)
@@ -158,6 +159,7 @@ if __name__ == "__main__":
 
     eval_callback = None
     if args.num_envs > 1:
+        print(arg.num_envs)
         print_label_for_env = make_env(args, 0)[1] + "_parallel"
         envfunc = lambda: make_env(args, 0)[0]
         env = DummyVecEnv([envfunc for i in range(4)])
