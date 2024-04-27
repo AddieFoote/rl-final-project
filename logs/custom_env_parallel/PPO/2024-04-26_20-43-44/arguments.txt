@@ -1,0 +1,9 @@
+env: custom-dynamic
+obs: fully-observable
+algorithm: PPO
+policy: CnnPolicy
+save_id: 2024-04-26_20-43-44
+num_timesteps: 8000000
+num_conv_layers: 3
+num_envs: 32
+size: 10
