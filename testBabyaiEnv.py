@@ -44,7 +44,6 @@ def make_env(args, rank):
             goal_encode_mode = 'position'
         else:
             goal_encode_mode = 'grid'
-        print("goal_encode_mode", goal_encode_mode)
         env = SimpleEnv(render_mode="rgb_array", goal_encode_mode=goal_encode_mode, image_encoding_mode='grid', size=args.size)
         if args.goal_features == "fully-observable":
             env = GoalSpecifiedWrapper(env)
