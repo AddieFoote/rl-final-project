@@ -13,13 +13,13 @@ import torch
 from torch import nn
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines3.common.logger import configure
-
+from stable_baselines3.common.callbacks import EvalCallback
 
 
 # Custom packages
 from goal_env import SimpleEnv
 from full_observable import OneHotFullyObsWrapper
-
+from goal_conditioned_wrappers import GoalSpecifiedWrapper
 
 
 
@@ -77,8 +77,12 @@ class MinigridFeaturesExtractor(stable_baselines3.common.torch_layers.BaseFeatur
     def forward(self, observations: torch.Tensor) -> torch.Tensor:
         return self.linear(self.cnn(observations))
 
-def train_with_PPO(model, log_dir, num_timesteps=2e5):
-    model = model.learn(num_timesteps) # train for 200k timesteps
+def train_with_PPO(model, log_dir, num_timesteps=2e5, eval_callback=None):
+    if eval_callback is not None:
+        model = model.learn(num_timesteps, callback = eval_callback) 
+    else:
+        model = model.learn(num_timesteps) # train for 200k timestep
+    
     model.save(log_dir)
 
 def write_args_to_file(args, file_path):
@@ -88,21 +92,27 @@ def write_args_to_file(args, file_path):
 
  #"BabyAI-UnlockPickupDist-v0" # "BabyAI-OneRoomS8-v0" 
 
-def make_env(args, rank, seed=0):
+def make_env(args, rank):
     if args.env == 'custom-set-goal':
-        env = SimpleEnv(render_mode="rgb_array", goal_pos = [4, 4])
+        env = SimpleEnv(render_mode="rgb_array", size = 5, goal_pos = [2, 2], goal_encode_mode='position')
+        # import ipdb; ipdb.set_trace()
         print_label_for_env = "custom_env"
-    elif args.env == 'custom-dynamic':
-        env = SimpleEnv(render_mode="rgb_array")
+    elif args.env == 'custom-dynamic' and args.obs == 'fully-observable':
+        env = SimpleEnv(render_mode="rgb_array", goal_encode_mode='grid', image_encoding_mode='grid', size=5)
+        env = GoalSpecifiedWrapper(env)
         print_label_for_env = "custom_env"
     elif args.env == 'room':
         env = gymnasium.make("BabyAI-OneRoomS8-v0" , render_mode="rgb_array")
         print_label_for_env = "BabyAI-OneRoomS8-v0"
 
 
+        
     if args.policy == 'CnnPolicy' and (args.algorithm == 'DQN' or args.algorithm == 'HER'):
         raise('DDPG and HER do not support CnnPolicy')
-    if args.obs == "one-hot":
+    
+    if 'custom' in args.env:
+        pass
+    elif args.obs == "one-hot":
         env = minigrid.wrappers.OneHotPartialObsWrapper(env)
         env = minigrid.wrappers.ImgObsWrapper(env)
     elif args.obs == 'img':
@@ -128,7 +138,7 @@ def make_env(args, rank, seed=0):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Script description here")
-    parser.add_argument('--env', choices=['custom-set-goal', 'custon-dynamic', 'room'], default='custom', help="Environment type")
+    parser.add_argument('--env', choices=['custom-set-goal', 'custom-dynamic', 'room'], default='custom-set-goal', help="Environment type")
     parser.add_argument('--obs', choices=['one-hot', 'img', "fully-observable", "fully-observable-one-hot"], default='img', help="Environment type (normalized or one-hot)")
     parser.add_argument('--algorithm', choices=['PPO', 'A2C', 'DDPG', 'DQN', 'HER', 'SAC', 'TD3'], default='PPO')
     parser.add_argument('--policy', choices=['CnnPolicy', 'MlpPolicy'], default='CnnPolicy')
@@ -140,26 +150,24 @@ if __name__ == "__main__":
 
     
     
-    #env, print_label_for_env = make_env(args.env, args, 0)
-    
-    
-        
-
-    
-    
+    #env, print_label_for_env = make_env(args.env, args)
     policy_kwargs = dict(
         features_extractor_class=MinigridFeaturesExtractor,
         features_extractor_kwargs=dict(features_dim=128, num_layer=args.num_conv_layers),
     )
 
-    
+    eval_callback = None
     if args.num_envs > 1:
         print_label_for_env = make_env(args, 0)[1] + "_parallel"
         envfunc = lambda: make_env(args, 0)[0]
         env = DummyVecEnv([envfunc for i in range(4)])
+        
+        eval_env = envfunc()
+        logs_path = os.path.join("./logs", print_label_for_env)
+        log_dir = os.path.join(logs_path, args.algorithm, args.save_id)
+        eval_callback = EvalCallback(eval_env, log_path=log_dir, eval_freq= 2048, n_eval_episodes = 12, render = False)
     else:
         env, print_label_for_env = make_env(args, 0)
-        
     
     policy_type = args.policy
     logs_path = os.path.join("./logs", print_label_for_env)
@@ -190,4 +198,4 @@ if __name__ == "__main__":
     os.makedirs(log_dir, exist_ok=True)
     write_args_to_file(args, log_dir + "/arguments.txt")
 
-    train_with_PPO(model, log_dir, num_timesteps=args.num_timesteps)
+    train_with_PPO(model, log_dir, num_timesteps=args.num_timesteps, eval_callback=eval_callback)

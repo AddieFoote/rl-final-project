@@ -12,8 +12,13 @@ from minigrid.core.world_object import Door, Goal, Key, Wall, Floor, Ball
 # from minigrid.manual_control import ManualControl
 from our_manual_control import OurManualControl as ManualControl
 from minigrid.minigrid_env import MiniGridEnv
+from minigrid.core.constants import COLOR_TO_IDX, OBJECT_TO_IDX, STATE_TO_IDX
 
 import random
+
+
+# the enivironment is zero indexed
+# it also spawns walls around everything
 
 class SimpleEnv(MiniGridEnv):
     def __init__(
@@ -21,18 +26,25 @@ class SimpleEnv(MiniGridEnv):
         size=8,
         agent_start_pos=None,
         agent_start_dir=0,
-        goal_pos = None,
+        goal_pos=None,
         max_steps: int | None = None,
+        goal_encode_mode=None,
+        image_encoding_mode='img', 
         **kwargs,
     ):
+        self.goal_encode_mode = goal_encode_mode
         self.goal_pos = goal_pos
         self.agent_start_pos = agent_start_pos
         self.agent_start_dir = agent_start_dir
+        self.image_encoding_mode = image_encoding_mode
+        if self.goal_pos == None: assert self.goal_encode_mode != None
 
+        assert self.goal_encode_mode in [None, 'grid', 'position']
+        assert self.image_encoding_mode in ['grid', 'img']
         mission_space = MissionSpace(mission_func=self._gen_mission)
-
         if max_steps is None:
             max_steps = 4 * size**2
+        
 
         super().__init__(
             mission_space=mission_space,
@@ -42,6 +54,8 @@ class SimpleEnv(MiniGridEnv):
             max_steps=max_steps,
             **kwargs,
         )
+        # self._gen_grid(size, size)
+
 
     @staticmethod
     def _gen_mission():
@@ -51,7 +65,7 @@ class SimpleEnv(MiniGridEnv):
         w, h = lambda : random.randint(0, grid.width - 1) , lambda : random.randint(0, grid.height - 1)
         for _ in range(max_tries):
             if forced_x is not None and forced_y is not None:
-                print("using forced position")
+                #print("using forced position")
                 pos = (forced_x, forced_y)
             elif forced_x is not None or forced_y is not None:
                 raise RuntimeError("only passed one forced pos")
@@ -91,7 +105,7 @@ class SimpleEnv(MiniGridEnv):
         else:
             goal_obj_pos = self.place_our_obj(self.goal_grid, self.goal_ball, forced_x = self.goal_pos[0], forced_y = self.goal_pos[1])
 
-        print(f"Our goal is located at {goal_obj_pos}")
+        #print(f"Our goal is located at {goal_obj_pos}")
 
         if self.agent_start_pos is not None:
             self.agent_pos = self.agent_start_pos
@@ -100,11 +114,15 @@ class SimpleEnv(MiniGridEnv):
             self.place_agent()
 
         self.mission = "grand mission"
+        self.set_the_goal()
 
     def step(self, action):
         obs, reward, done, terminated, info = super().step(action)
+        if self.image_encoding_mode == 'grid':
+            obs['image'] = self.grid.encode()
+        if self.goal_encode_mode != None:
+            obs['goal'] = self.goal_encoded
         reward = 0
-        
         
         if (self.goal_ball.cur_pos[0] == self.real_ball.cur_pos[0]) and (self.goal_ball.cur_pos[1] == self.real_ball.cur_pos[1]):
             reward = self._reward()
@@ -114,17 +132,33 @@ class SimpleEnv(MiniGridEnv):
             done = True
         return obs, reward, done, terminated, info
 
+    def reset(self, **kwargs):
+        obs, info = super().reset(**kwargs)
+        if self.image_encoding_mode == 'grid':
+            full_grid = self.grid.encode()
+            full_grid[self.agent_pos[0]][self.agent_pos[1]] = np.array(
+                [OBJECT_TO_IDX["agent"], COLOR_TO_IDX["red"], self.agent_dir]
+            )
+            obs['image'] = full_grid
+        if self.goal_encode_mode != None:
+            obs['goal'] = self.goal_encoded
+        return obs, info
 
-    def get_the_goal(self, mode="position"):
-        if mode == "position":
-            return self.goal_ball.cur_pos
-        elif mode == "grid":
-            return self.goal_grid.encode()
+
+    def set_the_goal(self):
+        if self.goal_encode_mode == "position":
+            self.goal_encoded = self.goal_ball.cur_pos
+        elif self.goal_encode_mode == "grid":
+            # import ipdb; ipdb.set_trace()
+            # self.observation_space.spaces["grid"]
+            self.goal_encoded = self.goal_grid.encode()
+        elif self.goal_encode_mode == None:
+            self.goal_encoded = None
         else:
             raise ValueError("wrong input to get_the_goal lol")
 
 def main():
-    env = SimpleEnv(render_mode="human")
+    env = SimpleEnv(render_mode="human", size = 5, goal_pos = [2, 2])
 
     # enable manual control for testing
     manual_control = ManualControl(env, seed=42)

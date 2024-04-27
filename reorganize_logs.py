@@ -15,8 +15,10 @@ def restructure_logs(src_dir, dst_dir, subfolder):
                 args = dict(line.strip().split(": ") for line in f)
             env = args["env"]
             policy = args["policy"]
+            num_layers = args["num_conv_layers"]
+            obs = args["obs"]
             run_folder = os.path.basename(root)
-            new_path = os.path.join(dst_dir, subfolder, env, policy, run_folder)
+            new_path = os.path.join(dst_dir, subfolder, obs, env, policy + num_layers, run_folder)
             os.makedirs(new_path, exist_ok=True)
             shutil.copytree(root, new_path, dirs_exist_ok=True)
 
