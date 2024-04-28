@@ -57,3 +57,28 @@ class GoalAndStateDictWrapper(ObservationWrapper):
         return out
 
 
+
+class HERWrapper(SimpleEnv):
+    def __init__(self, **kwargs):
+        assert "goal_encode_mode" in kwargs and kwargs["goal_encode_mode"] == "grid"
+        assert "image_encoding_mode" in kwargs and kwargs["image_encoding_mode"] == "grid"
+        super().__init__(**kwargs)
+
+    def step(self, action):
+        obs, reward, done, terminated, info = super().step(action)
+        if reward > 0:
+            reward = 1
+        
+        return OrderedDict(
+            [
+                ("observation", obs["image"]),
+                ("achieved_goal", obs["image"]),
+                ("desired_goal", obs["goal"]),
+            ]
+        )
+
+    def compute_reward(self, achieved_goal, desired_goal, _info: Optional[Dict[str, Any]]) -> np.float32:
+        if achieved_goal == desired_goal:
+            return 1.
+        return 0
+

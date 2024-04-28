@@ -35,7 +35,7 @@ class SimpleEnv(MiniGridEnv):
     ):
         self.number_of_balls=number_of_balls
         assert self.number_of_balls < size**2 // 4
-        
+
         self.goal_pos = goal_pos
         self.agent_start_pos = agent_start_pos
         self.agent_start_dir = agent_start_dir
@@ -49,9 +49,8 @@ class SimpleEnv(MiniGridEnv):
         mission_space = MissionSpace(mission_func=self._gen_mission)
         if max_steps is None:
             max_steps = 4 * size**2
-        
-        if self.goal_pos is not None: assert self.number_of_balls == 1
 
+        if self.goal_pos is not None: assert self.number_of_balls == 1
 
         super().__init__(
             mission_space=mission_space,

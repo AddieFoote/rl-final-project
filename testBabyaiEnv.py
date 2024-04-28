@@ -57,7 +57,7 @@ def make_env(args, rank):
 
 
         
-    if args.policy == 'CnnPolicy' and (args.algorithm == 'DQN' or args.algorithm == 'HER'):
+    if args.policy == 'CnnPolicy' and (args.algorithm == 'DDPG' or args.algorithm == 'HER'):
         raise('DDPG and HER do not support CnnPolicy')
     if args.env == 'custom-dynamic' and args.obs == 'fully-observable':
         pass
@@ -147,6 +147,9 @@ if __name__ == "__main__":
         model = stable_baselines3.DQN(policy_type, env, policy_kwargs=policy_kwargs, tensorboard_log=log_dir, verbose=1)
     elif args.algorithm == 'HER':
         raise('HER not implemented')
+        # future selction strategy (any future state is goal)
+        # HER buffer
+        
         model = stable_baselines3.HER(policy_type, env, policy_kwargs=policy_kwargs, tensorboard_log=log_dir, verbose=1)
     elif args.algorithm == 'SAC':
         raise('SAC not applicable, expects continuous action space')
