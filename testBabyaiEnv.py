@@ -45,7 +45,7 @@ def make_env(args, rank):
             goal_encode_mode = 'position'
         else:
             goal_encode_mode = 'grid'
-        env = SimpleEnv(render_mode="rgb_array", goal_encode_mode=goal_encode_mode, image_encoding_mode='grid', size=args.size)
+        env = SimpleEnv(render_mode="rgb_array", goal_encode_mode=goal_encode_mode, image_encoding_mode='grid', size=args.size, reward_shaping=args.reward_shaping)
         if args.goal_features == "fully-observable":
             env = GoalSpecifiedWrapper(env)
         else:
@@ -95,6 +95,8 @@ if __name__ == "__main__":
     parser.add_argument('--num_envs', type=int, default = 1, help="Number of environments to run in parallel - 1 means no parallelization")
     parser.add_argument('--size', type=int, default = 5, help="size of square of environment")
     parser.add_argument("--goal-features", type=str, choices=['fully-observable', 'one-pos', 'same-network-fully-obs'], default='fully-observable')
+    parser.add_argument("--reward-shaping", type=bool, default=False)
+    
     args = parser.parse_args()
 
     if args.size != 5: assert 'custom' in args.env
