@@ -39,7 +39,7 @@ def make_env(args, rank):
     if args.env == 'custom-set-goal':
         env = SimpleEnv(render_mode="rgb_array", size = args.size, goal_pos = [2, 2], goal_encode_mode='position')
         # import ipdb; ipdb.set_trace()
-        print_label_for_env = "custom_env"
+        print_label_for_env = "custom_env_final"
     elif args.env == 'custom-dynamic' and args.obs == 'fully-observable':            
         if args.goal_features == 'one-pos':
             goal_encode_mode = 'position'
@@ -54,7 +54,7 @@ def make_env(args, rank):
                 env = GoalSpecifiedWrapper(env)
             else:
                 env = GoalAndStateDictWrapper(env)
-        print_label_for_env = "custom_env"
+        print_label_for_env = "custom_env_final"
     elif args.env == 'room':
         env = gymnasium.make("BabyAI-OneRoomS8-v0" , render_mode="rgb_array")
         print_label_for_env = "BabyAI-OneRoomS8-v0"
