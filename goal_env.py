@@ -125,7 +125,7 @@ class SimpleEnv(MiniGridEnv):
         else:
             goal_obj_pos = self.place_our_obj(self.goal_grid, self.goal_balls[0], forced_x = self.goal_pos[0], forced_y = self.goal_pos[1])
 
-        #print(f"Our goal is located at {goal_obj_pos}")
+        # print(f"Our goal is located at {goal_obj_pos}")
 
         if self.agent_start_pos is not None:
             self.agent_pos = self.agent_start_pos
@@ -143,7 +143,11 @@ class SimpleEnv(MiniGridEnv):
         distances = []
         for goal_ball, real_ball in zip(self.goal_balls, self.real_balls):
             goal_pos = goal_ball.cur_pos
-            real_pos = real_ball.cur_pos
+            if self.carrying is not None and self.carrying == real_ball:
+                real_pos = self.agent_pos
+            else:
+                real_pos = real_ball.cur_pos
+                
             distance = np.linalg.norm(np.array(goal_pos) - np.array(real_pos))
             distances.append(distance)
             
@@ -174,7 +178,7 @@ class SimpleEnv(MiniGridEnv):
         
         if self.reward_shaping:
             new_distances = self.get_distances_to_goal()
-            shaping = sum([old - new for old, new in zip(self.distances, new_distances)]) #/ math.sqrt(self.width ** 2)
+            shaping = sum([old - new for old, new in zip(self.distances, new_distances)]) / self.width #math.sqrt(self.width ** 2)
             reward += shaping
             self.distances = new_distances
         
@@ -242,7 +246,7 @@ class SimpleEnv(MiniGridEnv):
             raise ValueError("wrong input to get_the_goal lol")
 
 def main():
-    env = env = SimpleEnv(render_mode="human", goal_encode_mode='grid', image_encoding_mode='grid', size=6)
+    env = env = SimpleEnv(render_mode="human", goal_encode_mode='grid', image_encoding_mode='grid', size=6, reward_shaping=True)
 
     # enable manual control for testing
     manual_control = ManualControl(env, seed=42)
