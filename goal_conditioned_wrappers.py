@@ -1,6 +1,11 @@
+from collections import OrderedDict
+
 from gymnasium.core import ActionWrapper, ObservationWrapper, ObsType, Wrapper
 from gymnasium import logger, spaces
 import numpy as np
+
+from goal_env import SimpleEnv
+
 
 class GoalSpecifiedWrapper(ObservationWrapper):
     def __init__(self, env):
@@ -56,29 +61,44 @@ class GoalAndStateDictWrapper(ObservationWrapper):
         out['goal'] = obs["goal"]
         return out
 
-
-
 class HERWrapper(SimpleEnv):
     def __init__(self, **kwargs):
         assert "goal_encode_mode" in kwargs and kwargs["goal_encode_mode"] == "grid"
         assert "image_encoding_mode" in kwargs and kwargs["image_encoding_mode"] == "grid"
+        assert 'agent_in_goal' in kwargs and kwargs['agent_in_goal']
         super().__init__(**kwargs)
+        assert self.observation_space.spaces['goal'] == self.observation_space.spaces['image']
+        self.observation_space = spaces.Dict({
+            "observation": self.observation_space.spaces['goal'],
+            "achieved_goal": self.observation_space.spaces['goal'],
+            "desired_goal": self.observation_space.spaces['goal'],
+        })
+        print(self.observation_space)
 
     def step(self, action):
         obs, reward, done, terminated, info = super().step(action)
         if reward > 0:
             reward = 1
         
-        return OrderedDict(
+        return OrderedDict (
             [
                 ("observation", obs["image"]),
                 ("achieved_goal", obs["image"]),
                 ("desired_goal", obs["goal"]),
             ]
-        )
+        ), reward, done, terminated, info
+    
+    def reset(self,**kwargs):
+        obs, info = super().reset(**kwargs)
+        return OrderedDict (
+            [
+                ("observation", obs["image"]),
+                ("achieved_goal", obs["image"]),
+                ("desired_goal", obs["goal"]),
+            ]
+        ), info
 
-    def compute_reward(self, achieved_goal, desired_goal, _info: Optional[Dict[str, Any]]) -> np.float32:
-        if achieved_goal == desired_goal:
-            return 1.
-        return 0
-
+    def compute_reward(self, achieved_goal, desired_goal, _info) -> np.float32:
+        # import ipdb; ipdb.set_trace()
+        result = np.all(achieved_goal == desired_goal, axis=(1, 2, 3))
+        return result.astype(int)

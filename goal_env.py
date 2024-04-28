@@ -34,6 +34,7 @@ class SimpleEnv(MiniGridEnv):
         image_encoding_mode='img', 
         number_of_balls=1,
         reward_shaping = False,
+        agent_in_goal=False,
         **kwargs,
     ):
         self.number_of_balls=number_of_balls
@@ -42,7 +43,8 @@ class SimpleEnv(MiniGridEnv):
         self.goal_pos = goal_pos
         self.agent_start_pos = agent_start_pos
         self.agent_start_dir = agent_start_dir
-        
+        self.agent_in_goal = agent_in_goal
+
         self.goal_encode_mode = goal_encode_mode
         self.image_encoding_mode = image_encoding_mode
         if self.goal_pos == None: assert self.goal_encode_mode != None
@@ -108,10 +110,6 @@ class SimpleEnv(MiniGridEnv):
         self.grid.wall_rect(0, 0, width, height) # Generate the surrounding walls
         self.goal_grid.wall_rect(0, 0, width, height)
 
-        # for i in range(0, height):  # Generate vertical separation wall
-        #     self.grid.set(5, i, Wall())
-       
-        # self.grid.set(5, 6, Door(COLOR_NAMES[0], is_locked=True))  # Place the door and key
         self.real_balls = []
         self.goal_balls = []
         for i in range(self.number_of_balls):
@@ -121,8 +119,6 @@ class SimpleEnv(MiniGridEnv):
         for ball in self.real_balls:
             obj_pos = self.place_our_obj(self.grid, ball)
 
-        # set_x_temp = 4
-        # set_y_temp = 4
         if self.goal_pos is None:
             for ball in self.goal_balls:
                 goal_obj_pos = self.place_our_obj(self.goal_grid, ball)
@@ -213,7 +209,7 @@ class SimpleEnv(MiniGridEnv):
                 )
                 obs['image'] = full_grid
             if self.goal_encode_mode != None:
-                obs['goal'] = self.goal_encoded
+                obs['goal'] = self.goal_encoded                    
                 
             reset_once = True
             # if self.check_goal_reached():
@@ -232,6 +228,14 @@ class SimpleEnv(MiniGridEnv):
             # import ipdb; ipdb.set_trace()
             # self.observation_space.spaces["grid"]
             self.goal_encoded = self.goal_grid.encode()
+
+            if self.agent_in_goal:
+                last_ball_pos = self.goal_balls[-1].cur_pos
+                x_pos = (last_ball_pos[0] - 1) if (last_ball_pos[0] > 1) else (last_ball_pos[0] + 1)
+                y_pos = last_ball_pos[1]
+                self.goal_encoded[x_pos][y_pos] = np.array(
+                [OBJECT_TO_IDX["agent"], COLOR_TO_IDX["red"], 0]
+            )
         elif self.goal_encode_mode == None:
             self.goal_encoded = None
         else:

@@ -19,8 +19,8 @@ from stable_baselines3.common.callbacks import EvalCallback
 # Custom packages
 from goal_env import SimpleEnv
 from full_observable import OneHotFullyObsWrapper
-from goal_conditioned_wrappers import GoalSpecifiedWrapper, GoalAndStateDictWrapper
-from feature_exctractors import MinigridFeaturesExtractor, FeaturesStateGridGoalPos, SameGoalStateEncoder
+from goal_conditioned_wrappers import GoalSpecifiedWrapper, GoalAndStateDictWrapper, HERWrapper
+from feature_exctractors import MinigridFeaturesExtractor, FeaturesStateGridGoalPos, SameGoalStateEncoder, HERfeatureExtractor
 
 
 def train_with_PPO(model, log_dir, num_timesteps=2e5, eval_callback=None):
@@ -40,16 +40,20 @@ def make_env(args, rank):
         env = SimpleEnv(render_mode="rgb_array", size = args.size, goal_pos = [2, 2], goal_encode_mode='position')
         # import ipdb; ipdb.set_trace()
         print_label_for_env = "custom_env"
-    elif args.env == 'custom-dynamic' and args.obs == 'fully-observable':
+    elif args.env == 'custom-dynamic' and args.obs == 'fully-observable':            
         if args.goal_features == 'one-pos':
             goal_encode_mode = 'position'
         else:
             goal_encode_mode = 'grid'
-        env = SimpleEnv(render_mode="rgb_array", goal_encode_mode=goal_encode_mode, image_encoding_mode='grid', size=args.size, reward_shaping=args.reward_shaping)
-        if args.goal_features == "fully-observable":
-            env = GoalSpecifiedWrapper(env)
+        if args.goal_features == "HER":
+            print("HER env")
+            env = HERWrapper(render_mode="rgb_array", goal_encode_mode=goal_encode_mode, image_encoding_mode='grid', size=args.size, reward_shaping=args.reward_shaping, agent_in_goal=True)
         else:
-            env = GoalAndStateDictWrapper(env)
+            env = SimpleEnv(render_mode="rgb_array", goal_encode_mode=goal_encode_mode, image_encoding_mode='grid', size=args.size, reward_shaping=args.reward_shaping)
+            if args.goal_features == "fully-observable":
+                env = GoalSpecifiedWrapper(env)
+            else:
+                env = GoalAndStateDictWrapper(env)
         print_label_for_env = "custom_env"
     elif args.env == 'room':
         env = gymnasium.make("BabyAI-OneRoomS8-v0" , render_mode="rgb_array")
@@ -59,7 +63,7 @@ def make_env(args, rank):
         
     if args.policy == 'CnnPolicy' and (args.algorithm == 'DDPG' or args.algorithm == 'HER'):
         raise('DDPG and HER do not support CnnPolicy')
-    if args.env == 'custom-dynamic' and args.obs == 'fully-observable':
+    if args.goal_features == "HER" or args.env == 'custom-dynamic' and args.obs == 'fully-observable':
         pass
     elif args.obs == "one-hot":
         env = minigrid.wrappers.OneHotPartialObsWrapper(env)
@@ -94,10 +98,17 @@ if __name__ == "__main__":
     parser.add_argument('--num-conv-layers', type=int, default=3, help="Number of convolutional layers")
     parser.add_argument('--num_envs', type=int, default = 1, help="Number of environments to run in parallel - 1 means no parallelization")
     parser.add_argument('--size', type=int, default = 5, help="size of square of environment")
-    parser.add_argument("--goal-features", type=str, choices=['fully-observable', 'one-pos', 'same-network-fully-obs'], default='fully-observable')
+    parser.add_argument("--goal-features", type=str, choices=['fully-observable', 'one-pos', 'same-network-fully-obs', 'HER'], default='fully-observable')
     parser.add_argument("--reward-shaping", type=bool, default=False)
     
     args = parser.parse_args()
+
+    if args.algorithm == 'HER':
+        args.goal_features = "HER"
+        args.obs = "fully-observable"
+        args.policy =  'MultiInputPolicy'
+        print(f"SETTING 'goal_features' TO {args.goal_features} FOR HER ALGORITHM AND OBSERVATION {args.obs}")
+        assert args.env == 'custom-dynamic'
 
     if args.size != 5: assert 'custom' in args.env
     if args.goal_features != "fully-observable": 
@@ -113,6 +124,8 @@ if __name__ == "__main__":
         features_extractor_class=FeaturesStateGridGoalPos 
     elif args.goal_features == 'same-network-fully-obs':
         features_extractor_class=SameGoalStateEncoder
+    elif args.goal_features == 'HER':
+        features_extractor_class=HERfeatureExtractor
 
     policy_kwargs = dict(
         features_extractor_class=features_extractor_class,
@@ -148,11 +161,19 @@ if __name__ == "__main__":
     elif args.algorithm == 'DQN':
         model = stable_baselines3.DQN(policy_type, env, policy_kwargs=policy_kwargs, tensorboard_log=log_dir, verbose=1)
     elif args.algorithm == 'HER':
-        raise('HER not implemented')
+        # HERWrapper()
+        # raise('HER not implemented')
         # future selction strategy (any future state is goal)
         # HER buffer
-        
-        model = stable_baselines3.HER(policy_type, env, policy_kwargs=policy_kwargs, tensorboard_log=log_dir, verbose=1)
+        replay_buffer_class=stable_baselines3.HerReplayBuffer
+    # Parameters for HER
+        replay_buffer_kwargs=dict(
+            n_sampled_goal=4,
+            goal_selection_strategy='future',
+        )
+        model = stable_baselines3.DQN(policy_type, env, policy_kwargs=policy_kwargs,
+                                       replay_buffer_class=replay_buffer_class, replay_buffer_kwargs=replay_buffer_kwargs, 
+                                       learning_starts=1000, tensorboard_log=log_dir, verbose=1)
     elif args.algorithm == 'SAC':
         raise('SAC not applicable, expects continuous action space')
         model = stable_baselines3.SAC(policy_type, env, policy_kwargs=policy_kwargs, tensorboard_log=log_dir, verbose=1)
