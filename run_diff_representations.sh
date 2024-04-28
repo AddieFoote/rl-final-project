@@ -4,7 +4,7 @@
 #SBATCH --output=babyai_test_%j.out
 #SBATCH --error=babyai_test_%j.err
 #SBATCH --partition=gpu-a100-small
-#SBATCH --time=03:00:00
+#SBATCH --time=24:00:00
 #SBATCH --nodes=1
 #SBATCH -A IRI24006
 #SBATCH --mail-type=all    # Send email at begin and end of job
