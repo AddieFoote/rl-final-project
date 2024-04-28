@@ -14,6 +14,8 @@ from our_manual_control import OurManualControl as ManualControl
 from minigrid.minigrid_env import MiniGridEnv
 from minigrid.core.constants import COLOR_TO_IDX, OBJECT_TO_IDX, STATE_TO_IDX
 
+
+import math
 import random
 
 
@@ -31,6 +33,7 @@ class SimpleEnv(MiniGridEnv):
         goal_encode_mode=None,
         image_encoding_mode='img', 
         number_of_balls=1,
+        reward_shaping = False,
         **kwargs,
     ):
         self.number_of_balls=number_of_balls
@@ -48,8 +51,8 @@ class SimpleEnv(MiniGridEnv):
         assert self.image_encoding_mode in ['grid', 'img']
         mission_space = MissionSpace(mission_func=self._gen_mission)
         if max_steps is None:
-            max_steps = 4 * size**2
-
+            max_steps = 8 * size ** 2 #4 * size**2
+        
         if self.goal_pos is not None: assert self.number_of_balls == 1
 
         super().__init__(
@@ -69,7 +72,9 @@ class SimpleEnv(MiniGridEnv):
             self.observation_space['image'] = spaces.Box(low=0, high=255, shape=(size, size, 3), dtype=np.uint8)
 
         # self._gen_grid(size, size)
-
+        
+        self.reward_shaping = reward_shaping
+        
 
     @staticmethod
     def _gen_mission():
@@ -135,6 +140,22 @@ class SimpleEnv(MiniGridEnv):
         self.mission = "grand mission"
         self.set_the_goal()
 
+
+
+    def get_distances_to_goal(self) -> list:
+        # gets the distance of each goal ball to the corresponding real ball
+        distances = []
+        for goal_ball, real_ball in zip(self.goal_balls, self.real_balls):
+            goal_pos = goal_ball.cur_pos
+            real_pos = real_ball.cur_pos
+            distance = np.linalg.norm(np.array(goal_pos) - np.array(real_pos))
+            distances.append(distance)
+            
+        return distances
+    
+    
+    
+
     def check_goal_reached(self):
         if self.goal_encode_mode == "position":
             assert self.number_of_balls, "only one ball allowed for position encoding of goals"
@@ -150,11 +171,17 @@ class SimpleEnv(MiniGridEnv):
             return (our_grid_copy == goal_grid_copy).all()
         else:
             raise ValueError("wrong input to check_goal_reached lol")
-    
-            
-            
+             
     def step(self, action):
         obs, reward, done, terminated, info = super().step(action)
+        reward = 0
+        
+        if self.reward_shaping:
+            new_distances = self.get_distances_to_goal()
+            shaping = sum([old - new for old, new in zip(self.distances, new_distances)]) #/ math.sqrt(self.width ** 2)
+            reward += shaping
+            self.distances = new_distances
+        
         if self.image_encoding_mode == 'grid':
             full_grid = self.grid.encode()
             full_grid[self.agent_pos[0]][self.agent_pos[1]] = np.array(
@@ -163,14 +190,15 @@ class SimpleEnv(MiniGridEnv):
             obs['image'] = full_grid
         if self.goal_encode_mode != None:
             obs['goal'] = self.goal_encoded
-        reward = 0
+        
         
         if self.check_goal_reached():
-            reward = self._reward()
+            reward = self._reward() 
             # if reward != 0:
             #     print('got the reward')
             terminated = True
             done = True
+        
         return obs, reward, done, terminated, info
 
     def reset(self, **kwargs):
@@ -190,6 +218,9 @@ class SimpleEnv(MiniGridEnv):
             reset_once = True
             # if self.check_goal_reached():
             #     print("resetting double")
+            if self.reward_shaping:
+                self.distances = self.get_distances_to_goal() # used for reward shaping
+
         
         return obs, info
 

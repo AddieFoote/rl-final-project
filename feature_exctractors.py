@@ -26,6 +26,12 @@ class MinigridFeaturesExtractor(stable_baselines3.common.torch_layers.BaseFeatur
     def __init__(self, observation_space: gymnasium.Space, features_dim: int = 512, normalized_image: bool = False, num_layer=3) -> None:
         super().__init__(observation_space, features_dim)
         n_input_channels = observation_space.shape[0]
+        
+        
+        
+        
+        
+        
         if num_layer == 3:
             self.cnn = nn.Sequential(
                 nn.Conv2d(n_input_channels, 16, (2, 2)),
@@ -36,7 +42,23 @@ class MinigridFeaturesExtractor(stable_baselines3.common.torch_layers.BaseFeatur
                 nn.ReLU(),
                 nn.Flatten(),
             )
-
+        elif num_layer == 5:
+            self.cnn = nn.Sequential(
+                nn.Conv2d(n_input_channels, 16, (2, 2)),
+                nn.ReLU(),
+                nn.Conv2d(16, 32, (2, 2)),
+                nn.ReLU(),
+                
+                nn.Conv2d(32, 32, (3, 3), padding=1),
+                nn.ReLU(),
+                nn.Conv2d(32, 32, (3, 3), padding=1),
+                nn.ReLU(),
+                
+                nn.Conv2d(32, 64, (2, 2)),
+                nn.ReLU(),
+                nn.Flatten(),
+            )
+            
         elif num_layer == 8:
             self.cnn = nn.Sequential(
                 nn.Conv2d(n_input_channels, 16, (2, 2)),
