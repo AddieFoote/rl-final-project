@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name=babyai_test
+#SBATCH --job-name=cnn_size
 #SBATCH --output=babyai_test_%j.out
 #SBATCH --error=babyai_test_%j.err
 #SBATCH --partition=gpu-a100-small
