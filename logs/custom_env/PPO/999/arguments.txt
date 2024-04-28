@@ -1,0 +1,10 @@
+env: custom-dynamic
+obs: fully-observable
+algorithm: PPO
+policy: MultiInputPolicy
+save_id: 999
+num_timesteps: 200000.0
+num_conv_layers: 3
+num_envs: 1
+size: 5
+goal_features: same-network-fully-obs
