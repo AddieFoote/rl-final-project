@@ -50,7 +50,7 @@ class SimpleEnv(MiniGridEnv):
         if self.goal_pos == None: assert self.goal_encode_mode != None
 
         assert self.goal_encode_mode in [None, 'grid', 'position']
-        assert self.image_encoding_mode in ['grid', 'img']
+        assert self.image_encoding_mode in ['grid', 'img', 'position']
         mission_space = MissionSpace(mission_func=self._gen_mission)
         if max_steps is None:
             max_steps = 8 * size ** 2 #4 * size**2
@@ -68,10 +68,15 @@ class SimpleEnv(MiniGridEnv):
         if self.goal_encode_mode == 'grid':
             self.observation_space['goal'] = spaces.Box(low=0, high=255, shape=(size, size, 3), dtype=np.uint8)
         elif self.goal_encode_mode == 'position':
-            self.observation_space['goal'] = spaces.Box(low=0, high=255, shape=(2,), dtype=np.uint8)
+            if self.agent_in_goal:
+                self.observation_space['goal'] = spaces.Box(low=0, high=255, shape=(5,), dtype=np.uint8)
+            else:
+                self.observation_space['goal'] = spaces.Box(low=0, high=255, shape=(2,), dtype=np.uint8)
         
         if self.image_encoding_mode == 'grid':
             self.observation_space['image'] = spaces.Box(low=0, high=255, shape=(size, size, 3), dtype=np.uint8)
+        elif self.image_encoding_mode == 'position':
+            self.observation_space['image'] = spaces.Box(low=0, high=255, shape=(5,), dtype=np.uint8)
 
         # self._gen_grid(size, size)
         
@@ -188,6 +193,11 @@ class SimpleEnv(MiniGridEnv):
                 [OBJECT_TO_IDX["agent"], COLOR_TO_IDX["red"], self.agent_dir]
             )
             obs['image'] = full_grid
+        elif self.image_encoding_mode == 'position':
+            obs['image'] = np.zeros((5))
+            obs['image'][0:2] = self.agent_pos
+            obs['image'][2:4] = self.real_balls[0].cur_pos
+            obs['image'][4] = self.agent_dir
         if self.goal_encode_mode != None:
             obs['goal'] = self.goal_encoded
         
@@ -227,7 +237,17 @@ class SimpleEnv(MiniGridEnv):
     def set_the_goal(self):
         if self.goal_encode_mode == "position":
             assert self.number_of_balls == 1, "only one ball currently allowed for position encoding of goals"
-            self.goal_encoded = np.array(self.goal_balls[0].cur_pos)
+            if self.agent_in_goal:
+                self.goal_encoded = np.zeros((5))
+                self.goal_encoded[0:2] = np.array(self.goal_balls[0].cur_pos)
+                last_ball_pos = self.goal_balls[-1].cur_pos
+                x_pos = (last_ball_pos[0] - 1) if (last_ball_pos[0] > 1) else (last_ball_pos[0] + 1)
+                y_pos = last_ball_pos[1]
+                self.goal_encoded[2] = x_pos
+                self.goal_encoded[3] = y_pos
+                self.goal_encoeded[4] = 0
+            else:
+                self.goal_encoded = np.array(self.goal_balls[0].cur_pos)
         elif self.goal_encode_mode == "grid":
             # import ipdb; ipdb.set_trace()
             # self.observation_space.spaces["grid"]
