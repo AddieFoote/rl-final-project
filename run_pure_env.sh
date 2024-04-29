@@ -8,16 +8,16 @@
 #SBATCH --nodes=1
 #SBATCH -A IRI24006
 #SBATCH --mail-type=all    # Send email at begin and end of job
-#SBATCH --mail-user=codyushing@utexas.edu
+#SBATCH --mail-user=addiefoote@utexas.edu
 
 
 
 # Load necessary modules (if required)
 eval "$(conda shell.bash hook)"
-conda activate rl_final
+conda activate rl-final
 
 # Run your command
-python testBabyaiEnv.py --env custom-dynamic --obs fully-observable --num-conv-layers 5 --num_env=32 --num-timesteps 3000000 --size 5 --reward-shaping False
-python testBabyaiEnv.py --env custom-dynamic --obs fully-observable --num-conv-layers 5 --num_env=32 --num-timesteps 3000000 --size 6 --reward-shaping False
-python testBabyaiEnv.py --env custom-dynamic --obs fully-observable --num-conv-layers 5 --num_env=32 --num-timesteps 3000000 --size 7 --reward-shaping False
-python testBabyaiEnv.py --env custom-dynamic --obs fully-observable --num-conv-layers 5 --num_env=32 --num-timesteps 3000000 --size 9 --reward-shaping False
+python $HOME/rl-final-project/testBabyaiEnv.py --env custom-dynamic --obs fully-observable --num-conv-layers 5 --num_env=32 --num-timesteps 10000000 --size 5 
+python $HOME/rl-final-project/testBabyaiEnv.py --env custom-dynamic --obs fully-observable --num-conv-layers 5 --num_env=32 --num-timesteps 10000000 --size 6 
+python $HOME/rl-final-project/testBabyaiEnv.py --env custom-dynamic --obs fully-observable --num-conv-layers 5 --num_env=32 --num-timesteps 10000000 --size 7 
+python $HOME/rl-final-project/testBabyaiEnv.py --env custom-dynamic --obs fully-observable --num-conv-layers 5 --num_env=32 --num-timesteps 10000000 --size 9
