@@ -1,0 +1,11 @@
+env: custom-dynamic
+obs: fully-observable
+algorithm: PPO
+policy: MultiInputPolicy
+save_id: 2024-04-29_01-15-26
+num_timesteps: 10000000
+num_conv_layers: 3
+num_envs: 32
+size: 5
+goal_features: one-pos
+reward_shaping: True
