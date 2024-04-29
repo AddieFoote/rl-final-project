@@ -63,8 +63,9 @@ class GoalAndStateDictWrapper(ObservationWrapper):
 
 class HERWrapper(SimpleEnv):
     def __init__(self, **kwargs):
-        assert "goal_encode_mode" in kwargs and kwargs["goal_encode_mode"] == "grid"
-        assert "image_encoding_mode" in kwargs and kwargs["image_encoding_mode"] == "grid"
+        assert "goal_encode_mode" in kwargs and kwargs["goal_encode_mode"] in ["grid", "position"]
+        assert "image_encoding_mode" in kwargs and kwargs["image_encoding_mode"] in ["grid", "position"]
+        assert kwargs["goal_encode_mode"] == kwargs["image_encoding_mode"]
         assert 'agent_in_goal' in kwargs and kwargs['agent_in_goal']
         super().__init__(**kwargs)
         assert self.observation_space.spaces['goal'] == self.observation_space.spaces['image']

@@ -228,14 +228,13 @@ class PosOnly(stable_baselines3.common.torch_layers.BaseFeaturesExtractor):
         else :
             raise('Invalid number of layers')
 
-        with torch.no_grad():
-            n_flatten = self.layers(torch.as_tensor(observation_space['observation'].sample()[None]).float()).shape[1]
+        # with torch.no_grad():
+        #     n_flatten = self.layers(torch.as_tensor(np.concatenate(observation_space['observation'].sample()[None], observation_space['desired_goal'].sample()[None])).float()).shape[1]
 
-        assert features_dim % 2 == 0
-        self.linear = nn.Sequential(nn.Linear(n_flatten, features_dim // 2), nn.ReLU())
+        # assert features_dim % 2 == 0
+        self.linear = nn.Sequential(nn.Linear(64, features_dim), nn.ReLU())
 
     def forward(self, observations: dict[str, torch.Tensor]) -> torch.Tensor:
-        grid = observations['observation']
-        goal = observations['desired_goal']
-        return = self.linear(self.layer(grid))
+        input = torch.cat((observations['observation'], observations['desired_goal']), dim=1)
+        return self.linear(self.layers(input))
        

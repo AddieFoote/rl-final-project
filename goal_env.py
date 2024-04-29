@@ -222,6 +222,12 @@ class SimpleEnv(MiniGridEnv):
                     [OBJECT_TO_IDX["agent"], COLOR_TO_IDX["red"], self.agent_dir]
                 )
                 obs['image'] = full_grid
+            elif self.image_encoding_mode == 'position':
+                obs['image'] = np.zeros((5))
+                obs['image'][0:2] = self.agent_pos
+                obs['image'][2:4] = self.real_balls[0].cur_pos
+                obs['image'][4] = self.agent_dir
+                
             if self.goal_encode_mode != None:
                 obs['goal'] = self.goal_encoded                    
                 
@@ -245,7 +251,7 @@ class SimpleEnv(MiniGridEnv):
                 y_pos = last_ball_pos[1]
                 self.goal_encoded[2] = x_pos
                 self.goal_encoded[3] = y_pos
-                self.goal_encoeded[4] = 0
+                self.goal_encoded[4] = 0
             else:
                 self.goal_encoded = np.array(self.goal_balls[0].cur_pos)
         elif self.goal_encode_mode == "grid":

@@ -20,7 +20,7 @@ from stable_baselines3.common.callbacks import EvalCallback
 from goal_env import SimpleEnv
 from full_observable import OneHotFullyObsWrapper
 from goal_conditioned_wrappers import GoalSpecifiedWrapper, GoalAndStateDictWrapper, HERWrapper
-from feature_exctractors import MinigridFeaturesExtractor, FeaturesStateGridGoalPos, SameGoalStateEncoder, HERfeatureExtractor
+from feature_exctractors import MinigridFeaturesExtractor, FeaturesStateGridGoalPos, SameGoalStateEncoder, HERfeatureExtractor, PosOnly
 
 
 def train_with_PPO(model, log_dir, num_timesteps=2e5, eval_callback=None):
@@ -36,7 +36,11 @@ def write_args_to_file(args, file_path):
             f.write(f"{arg}: {getattr(args, arg)}\n")
 
 def make_env(args, rank):
-    if args.env == 'custom-set-goal':
+
+    if args.goal_features == "both-pos":
+        print_label_for_env = "both-pos"
+        env = HERWrapper(render_mode="rgb_array", goal_encode_mode='position', image_encoding_mode='position', size=args.size, reward_shaping=False, agent_in_goal=True)
+    elif args.env == 'custom-set-goal':
         env = SimpleEnv(render_mode="rgb_array", size = args.size, goal_pos = [2, 2], goal_encode_mode='position')
         # import ipdb; ipdb.set_trace()
         print_label_for_env = "custom_env_final"
@@ -63,7 +67,7 @@ def make_env(args, rank):
         
     if args.policy == 'CnnPolicy' and (args.algorithm == 'DDPG' or args.algorithm == 'HER'):
         raise('DDPG and HER do not support CnnPolicy')
-    if args.goal_features == "HER" or args.env == 'custom-dynamic' and args.obs == 'fully-observable':
+    if args.goal_features in ["HER", "both-pos"] or args.env == 'custom-dynamic' and args.obs == 'fully-observable':
         pass
     elif args.obs == "one-hot":
         env = minigrid.wrappers.OneHotPartialObsWrapper(env)
@@ -98,7 +102,7 @@ if __name__ == "__main__":
     parser.add_argument('--num-conv-layers', type=int, default=3, help="Number of convolutional layers")
     parser.add_argument('--num_envs', type=int, default = 1, help="Number of environments to run in parallel - 1 means no parallelization")
     parser.add_argument('--size', type=int, default = 5, help="size of square of environment")
-    parser.add_argument("--goal-features", type=str, choices=['fully-observable', 'one-pos', 'same-network-fully-obs', 'HER'], default='fully-observable')
+    parser.add_argument("--goal-features", type=str, choices=['fully-observable', 'one-pos', 'same-network-fully-obs', 'HER', 'both-pos'], default='fully-observable')
     parser.add_argument("--reward-shaping", action='store_true', default=False, help="Specify reward shaping")
 
     args = parser.parse_args()
@@ -126,6 +130,8 @@ if __name__ == "__main__":
         features_extractor_class=SameGoalStateEncoder
     elif args.goal_features == 'HER':
         features_extractor_class=HERfeatureExtractor
+    elif args.goal_features == "both-pos":
+        features_extractor_class=PosOnly
 
     policy_kwargs = dict(
         features_extractor_class=features_extractor_class,
