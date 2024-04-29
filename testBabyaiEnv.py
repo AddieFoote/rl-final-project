@@ -99,8 +99,8 @@ if __name__ == "__main__":
     parser.add_argument('--num_envs', type=int, default = 1, help="Number of environments to run in parallel - 1 means no parallelization")
     parser.add_argument('--size', type=int, default = 5, help="size of square of environment")
     parser.add_argument("--goal-features", type=str, choices=['fully-observable', 'one-pos', 'same-network-fully-obs', 'HER'], default='fully-observable')
-    parser.add_argument("--reward-shaping", type=bool, default=False)
-    
+    parser.add_argument("--reward-shaping", action='store_true', default=False, help="Specify reward shaping")
+
     args = parser.parse_args()
 
     if args.algorithm == 'HER':
