@@ -1,6 +1,6 @@
-# rl-final-project
+# Goal Conditioned Reinforcement Learning and Representations
 
-This repository contains code for training and evaluating reinforcement learning (RL) agents in BabyAI environments using different algorithms and configurations.
+This repository contains code for training and evaluating goal-conditioned reinforcement learnin agents in BabyAI environments using different algorithms and configurations.
 
 ## Installation
 
