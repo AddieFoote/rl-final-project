@@ -1,43 +1,76 @@
-# Goal Conditioned Reinforcement Learning and Representations
+# Goal-Conditioned Reinforcement Learning and Representations
 
-This repository contains code for training and evaluating goal-conditioned reinforcement learnin agents in BabyAI environments using different algorithms and configurations.
+[![Report](https://img.shields.io/badge/Technical%20Report-PDF-blue.svg)](https://drive.google.com/file/d/1n3ooE5cu6S69NMDq4pYM8buZOF6ciA0b/view?usp=sharing)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
+
+Official implementation of **"Goal-Conditioned Reinforcement Learning and Representations"** - an empirical study of goal-conditioned RL algorithms across different observation spaces and architectural configurations in procedurally generated environments. For detailed results and analysis, see our [technical report](https://drive.google.com/file/d/1n3ooE5cu6S69NMDq4pYM8buZOF6ciA0b/view?usp=sharing) and [presentation](https://www.youtube.com/watch?v=zSou_YvQP-Y).
+
+## Abstract
+
+Abstract—Goal-Conditioned Reinforcement Learning enables agents to learn policies that can accomplish a variety of goals. We investigate goal-conditioned Reinforcement learning in a custom grid world environment based on the BabyAI framework that enables us to specify the goal as a desired world state. We compare the performance of different RL algorithms, including PPO, A2C, and DQN. We also explore the impact of various state and goal representations along with network architectures for our function extractors. Our experiments show that PPO outperforms the other algorithms in our setup, and that concatenating fully observable state representations with goal states is an effective input representation for the network. To address challenges with sparse rewards in larger environments, we implement reward shaping based on the distance between the ball and the goal, which enables learning in 6x6 grid worlds. We also test hindsight experience replay, but find that it does not yield significant benefits and substantially underperforms PPO in our specific setup. Our findings demonstrate the potential of goal-conditioned RL for flexibly solving tasks with multiple goals and highlight the importance of appropriate state and goal representations. 
 
 ## Installation
 
-Clone the repository:
-`git clone https://github.com/your-username/rl-project.git`
+```bash
+# Clone repository
+git clone https://github.com/your-username/goal-conditioned-rl.git
+cd goal-conditioned-rl
 
-Create conda env
-`conda create -n myenv python=3.12`
+# Create environment
+conda create -n gcrl python=3.12
+conda activate gcrl
 
-Activate conda env
-`conda activate myenv`
+# Install dependencies
+pip install -r requirements.txt
+```
 
-Install the required dependencies:
-`pip install -r requirements.txt`
+## Quick Start
 
+Train a PPO agent on our custom dynamic environment:
 
-## Usage
-To train an RL agent, you can run the main script with the desired command-line arguments. For example:
-```python testBabyaiEnv.py --env custom-dynamic --obs fully-observable --num-conv-layers 5 --num_env=32 --num-timesteps 4000000 --size 5 --reward-shaping True```
+```bash
+python testBabyaiEnv.py \
+    --env custom-dynamic \
+    --obs fully-observable \
+    --num-conv-layers 5 \
+    --num_env 32 \
+    --num-timesteps 4000000 \
+    --size 5 \
+    --reward-shaping True
+```
 
-This command will train an agent using the PPO algorithm on our custom 5x5 Goal Conditioned environment with a feature extractor of 5 conv layers. It will use the fully-observable observation and use reward shaping.
+## Experimental Configuration
 
-You can customize the training process by modifying the command-line arguments. Here are some of the available options:
-- `--env`: Environment type (e.g., `custom-set-goal`, `custom-dynamic`, `room`)
-- `--obs`: Observation type (e.g., `one-hot`, `img`, `fully-observable`, `fully-observable-one-hot`)
-- `--algorithm`: RL algorithm (e.g., `PPO`, `A2C`, `DQN`, `HER`)
-- `--policy`: Policy type (e.g., `CnnPolicy`, `MlpPolicy`)
-- `--num-timesteps`: Number of timesteps to train for
-- `--num-conv-layers`: Number of convolutional layers in the policy (3, 5, or 8)
-- `--num_envs`: Number of parallel environments to run
-- `--size`: Size of the square environment
-- `--goal-features`: Goal feature representation (e.g., `fully-observable`, `one-pos`, `same-network-fully-obs`, `HER`)
-- `--reward-shaping`: Enable reward shaping (default: False, don't include the flag if you don't want reward shaping)
+### Core Parameters
 
-Note that not all combinations of arguments are valid. For example using HER is only valid in the custom-dynamic environment. Invalid combinations may produce assertation errors or raise exceptions.
+| Parameter | Options | Description |
+|-----------|---------|-------------|
+| `--env` | `custom-set-goal`, `custom-dynamic`, `room` | Environment variant |
+| `--obs` | `one-hot`, `img`, `fully-observable`, `fully-observable-one-hot` | Observation representation |
+| `--algorithm` | `PPO`, `A2C`, `DQN`, `HER` | RL algorithm |
+| `--policy` | `CnnPolicy`, `MlpPolicy` | Policy network architecture |
+| `--num-timesteps` | Integer | Total training timesteps |
+| `--num-conv-layers` | `3`, `5`, `8` | CNN feature extractor depth |
+| `--num_envs` | Integer | Number of parallel environments |
+| `--size` | Integer | Environment grid size (square) |
+| `--goal-features` | `fully-observable`, `one-pos`, `same-network-fully-obs`, `HER` | Goal representation method |
+| `--reward-shaping` | `True`/`False` | Enable dense reward signals (default: False) |
 
-## Visualizing Results
-do `make board env=target_env` to create good logs of for the base `target_env`.
-To start the associated tensorboard, run 
-```tensorboard --logdir ./path/to/clean/dir```
+We evaluate CNN architectures with 3, 5, and 8 convolutional layers to understand the impact of representation capacity on goal-conditioned learning efficiency.
+
+#### Algorithm-Specific Notes
+
+- **HER (Hindsight Experience Replay)**: Only compatible with `custom-dynamic` environment
+- **Reward Shaping**: Optional dense reward signal for accelerated learning
+
+## Monitoring and Visualization
+
+Generate clean experiment logs:
+```bash
+make board env=target_env
+```
+
+Launch TensorBoard for result visualization:
+```bash
+tensorboard --logdir ./logs/clean/target_env
+```
